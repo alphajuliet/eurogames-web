@@ -20,7 +20,6 @@ import type {
 export interface ApiOptions {
 	baseUrl: string;
 	timeout?: number;
-	apiKey?: string;
 	bearerToken?: string;
 }
 
@@ -43,9 +42,6 @@ export class ApiClient {
 			'Content-Type': 'application/json',
 		};
 
-		if (options.apiKey) {
-			this.defaultHeaders['X-API-Key'] = options.apiKey;
-		}
 		if (options.bearerToken) {
 			this.defaultHeaders['Authorization'] = `Bearer ${options.bearerToken}`;
 		}
@@ -136,18 +132,10 @@ export class ApiClient {
 	}
 
 	/**
-	 * Set an API key for authorization
-	 */
-	setApiKey(key: string): void {
-		this.defaultHeaders['X-API-Key'] = key;
-	}
-
-	/**
 	 * Clear authorization headers
 	 */
 	clearAuth(): void {
 		delete this.defaultHeaders['Authorization'];
-		delete this.defaultHeaders['X-API-Key'];
 	}
 
 	// ==================== GAMES ====================

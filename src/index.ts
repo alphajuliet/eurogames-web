@@ -4,7 +4,6 @@ import { ApiClient } from './api';
 export interface Env {
 	EUROGAMES_API_URL?: string;
 	EUROGAMES_API_KEY?: string;
-	BEARER_TOKEN?: string;
 }
 
 // Helper to create API client with environment configuration
@@ -13,10 +12,7 @@ function createApiClient(env: Env): ApiClient {
 	const options: Omit<any, 'baseUrl'> & { baseUrl: string } = { baseUrl: apiUrl };
 
 	if (env.EUROGAMES_API_KEY) {
-		options.apiKey = env.EUROGAMES_API_KEY;
-	}
-	if (env.BEARER_TOKEN) {
-		options.bearerToken = env.BEARER_TOKEN;
+		options.bearerToken = env.EUROGAMES_API_KEY;
 	}
 
 	return new ApiClient(options);
@@ -56,7 +52,7 @@ router.options('*', () => {
 		headers: {
 			'Access-Control-Allow-Origin': '*',
 			'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-			'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key',
+			'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 		},
 	});
 });
@@ -64,10 +60,10 @@ router.options('*', () => {
 // ==================== GAMES ====================
 
 /**
- * GET /api/games - List all games with optional filtering
+ * GET /v1/games - List all games with optional filtering
  * Query params: (optional filters)
  */
-router.get('/api/games', async (_request, env: Env) => {
+router.get('/v1/games', async (_request, env: Env) => {
 	try {
 		const client = createApiClient(env);
 		const result = await client.listGames();
@@ -79,9 +75,9 @@ router.get('/api/games', async (_request, env: Env) => {
 });
 
 /**
- * GET /api/games/:id - Get game details
+ * GET /v1/games/:id - Get game details
  */
-router.get('/api/games/:id', async (request, env: Env) => {
+router.get('/v1/games/:id', async (request, env: Env) => {
 	try {
 		const client = createApiClient(env);
 
@@ -95,10 +91,10 @@ router.get('/api/games/:id', async (request, env: Env) => {
 });
 
 /**
- * POST /api/games - Add new game from BoardGameGeek
+ * POST /v1/games - Add new game from BoardGameGeek
  * Body: { bggId: number }
  */
-router.post('/api/games', async (request, env: Env) => {
+router.post('/v1/games', async (request, env: Env) => {
 	try {
 		const body = await parseRequestBody(request);
 		const bggId = body.bggId as number | undefined;
@@ -118,10 +114,10 @@ router.post('/api/games', async (request, env: Env) => {
 });
 
 /**
- * PATCH /api/games/:id/notes - Update game notes
+ * PATCH /v1/games/:id/notes - Update game notes
  * Body: { notes: string }
  */
-router.patch('/api/games/:id/notes', async (request, env: Env) => {
+router.patch('/v1/games/:id/notes', async (request, env: Env) => {
 	try {
 		const body = await parseRequestBody(request);
 		const notes = body.notes as string | undefined;
@@ -142,10 +138,10 @@ router.patch('/api/games/:id/notes', async (request, env: Env) => {
 });
 
 /**
- * PATCH /api/games/:id/data - Update game BGG data
+ * PATCH /v1/games/:id/data - Update game BGG data
  * Body: { data: Record<string, unknown> }
  */
-router.patch('/api/games/:id/data', async (request, env: Env) => {
+router.patch('/v1/games/:id/data', async (request, env: Env) => {
 	try {
 		const body = await parseRequestBody(request);
 		const data = body.data as Record<string, unknown> | undefined;
@@ -166,9 +162,9 @@ router.patch('/api/games/:id/data', async (request, env: Env) => {
 });
 
 /**
- * PUT /api/games/:id/sync - Sync game data from BoardGameGeek
+ * PUT /v1/games/:id/sync - Sync game data from BoardGameGeek
  */
-router.put('/api/games/:id/sync', async (request, env: Env) => {
+router.put('/v1/games/:id/sync', async (request, env: Env) => {
 	try {
 		const client = createApiClient(env);
 
@@ -182,9 +178,9 @@ router.put('/api/games/:id/sync', async (request, env: Env) => {
 });
 
 /**
- * GET /api/games/:id/history - Get game play history
+ * GET /v1/games/:id/history - Get game play history
  */
-router.get('/api/games/:id/history', async (request, env: Env) => {
+router.get('/v1/games/:id/history', async (request, env: Env) => {
 	try {
 		const client = createApiClient(env);
 
@@ -200,9 +196,9 @@ router.get('/api/games/:id/history', async (request, env: Env) => {
 // ==================== PLAYS ====================
 
 /**
- * GET /api/plays - List game plays with optional filtering
+ * GET /v1/plays - List game plays with optional filtering
  */
-router.get('/api/plays', async (_request, env: Env) => {
+router.get('/v1/plays', async (_request, env: Env) => {
 	try {
 		const client = createApiClient(env);
 
@@ -215,9 +211,9 @@ router.get('/api/plays', async (_request, env: Env) => {
 });
 
 /**
- * POST /api/plays - Record new game result
+ * POST /v1/plays - Record new game result
  */
-router.post('/api/plays', async (request, env: Env) => {
+router.post('/v1/plays', async (request, env: Env) => {
 	try {
 		const body = await parseRequestBody(request);
 
@@ -232,9 +228,9 @@ router.post('/api/plays', async (request, env: Env) => {
 });
 
 /**
- * GET /api/plays/:id - Get specific play record
+ * GET /v1/plays/:id - Get specific play record
  */
-router.get('/api/plays/:id', async (request, env: Env) => {
+router.get('/v1/plays/:id', async (request, env: Env) => {
 	try {
 		const client = createApiClient(env);
 
@@ -248,9 +244,9 @@ router.get('/api/plays/:id', async (request, env: Env) => {
 });
 
 /**
- * PUT /api/plays/:id - Update play record
+ * PUT /v1/plays/:id - Update play record
  */
-router.put('/api/plays/:id', async (request, env: Env) => {
+router.put('/v1/plays/:id', async (request, env: Env) => {
 	try {
 		const body = await parseRequestBody(request);
 
@@ -266,9 +262,9 @@ router.put('/api/plays/:id', async (request, env: Env) => {
 });
 
 /**
- * DELETE /api/plays/:id - Delete play record
+ * DELETE /v1/plays/:id - Delete play record
  */
-router.delete('/api/plays/:id', async (request, env: Env) => {
+router.delete('/v1/plays/:id', async (request, env: Env) => {
 	try {
 		const client = createApiClient(env);
 
@@ -284,9 +280,9 @@ router.delete('/api/plays/:id', async (request, env: Env) => {
 // ==================== STATISTICS ====================
 
 /**
- * GET /api/stats/winners - Win statistics by game
+ * GET /v1/stats/winners - Win statistics by game
  */
-router.get('/api/stats/winners', async (_request, env: Env) => {
+router.get('/v1/stats/winners', async (_request, env: Env) => {
 	try {
 		const client = createApiClient(env);
 
@@ -299,9 +295,9 @@ router.get('/api/stats/winners', async (_request, env: Env) => {
 });
 
 /**
- * GET /api/stats/totals - Overall win totals
+ * GET /v1/stats/totals - Overall win totals
  */
-router.get('/api/stats/totals', async (_request, env: Env) => {
+router.get('/v1/stats/totals', async (_request, env: Env) => {
 	try {
 		const client = createApiClient(env);
 
@@ -314,9 +310,9 @@ router.get('/api/stats/totals', async (_request, env: Env) => {
 });
 
 /**
- * GET /api/stats/last-played - Last played dates
+ * GET /v1/stats/last-played - Last played dates
  */
-router.get('/api/stats/last-played', async (_request, env: Env) => {
+router.get('/v1/stats/last-played', async (_request, env: Env) => {
 	try {
 		const client = createApiClient(env);
 
@@ -329,10 +325,10 @@ router.get('/api/stats/last-played', async (_request, env: Env) => {
 });
 
 /**
- * GET /api/stats/recent - Recent game plays
+ * GET /v1/stats/recent - Recent game plays
  * Query param: limit (optional)
  */
-router.get('/api/stats/recent', async (request, env: Env) => {
+router.get('/v1/stats/recent', async (request, env: Env) => {
 	try {
 		const url = new URL(request.url);
 		const limit = url.searchParams.get('limit');
@@ -348,9 +344,9 @@ router.get('/api/stats/recent', async (request, env: Env) => {
 });
 
 /**
- * GET /api/stats/players/:player - Player-specific statistics
+ * GET /v1/stats/players/:player - Player-specific statistics
  */
-router.get('/api/stats/players/:player', async (request, env: Env) => {
+router.get('/v1/stats/players/:player', async (request, env: Env) => {
 	try {
 		const client = createApiClient(env);
 
@@ -364,9 +360,9 @@ router.get('/api/stats/players/:player', async (request, env: Env) => {
 });
 
 /**
- * GET /api/stats/games - Game collection statistics
+ * GET /v1/stats/games - Game collection statistics
  */
-router.get('/api/stats/games', async (_request, env: Env) => {
+router.get('/v1/stats/games', async (_request, env: Env) => {
 	try {
 		const client = createApiClient(env);
 
@@ -381,9 +377,9 @@ router.get('/api/stats/games', async (_request, env: Env) => {
 // ==================== UTILITIES ====================
 
 /**
- * GET /api/export - Export all data as JSON
+ * GET /v1/export - Export all data as JSON
  */
-router.get('/api/export', async (_request, env: Env) => {
+router.get('/v1/export', async (_request, env: Env) => {
 	try {
 		const client = createApiClient(env);
 
@@ -396,10 +392,10 @@ router.get('/api/export', async (_request, env: Env) => {
 });
 
 /**
- * POST /api/query - Execute custom SELECT query
+ * POST /v1/query - Execute custom SELECT query
  * Body: { sql: string }
  */
-router.post('/api/query', async (request, env: Env) => {
+router.post('/v1/query', async (request, env: Env) => {
 	try {
 		const body = await parseRequestBody(request);
 		const sql = body.sql as string | undefined;
