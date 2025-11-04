@@ -213,8 +213,8 @@
             <div class="stat-card">
               <h4 x-text="stat.gameName"></h4>
               <p>Total Plays: <strong x-text="stat.totalPlays"></strong></p>
-              <ul class="winners-list">
-                <template x-for="[player, wins] in Object.entries(stat.wins).sort((a,b) => b[1] - a[1])">
+              <ul class="winners-list" x-show="stat.wins">
+                <template x-for="[player, wins] in Object.entries(stat.wins || {}).sort((a,b) => b[1] - a[1])">
                   <li>
                     <span x-text="player"></span>:
                     <strong x-text="wins"></strong> wins
