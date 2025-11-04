@@ -79,45 +79,42 @@
           </div>
         </div>
 
-        <div class="games-grid">
-          <template x-for="game in $store.games.filtered" :key="game.id">
-            <div class="game-card">
-              <h3 x-text="game.name"></h3>
+        <template x-if="$store.games.filtered.length === 0 && !$store.app.loading">
+          <p class="empty-state">No games found. Add your first game!</p>
+        </template>
 
-              <div class="game-details">
-                <p class="game-status">
-                  <strong>Status:</strong> <span x-text="game.status || 'Unknown'"></span>
-                </p>
-
-                <p class="game-info">
-                  <strong>BGG Ranking:</strong> <span x-text="game.ranking"></span>
-                </p>
-
-                <p class="game-info">
-                  <strong>Complexity:</strong> <span x-text="game.complexity ? game.complexity.toFixed(2) : 'N/A'"></span>
-                </p>
-
-                <p class="game-info">
-                  <strong>Times Played:</strong> <span x-text="game.games || 0"></span>
-                </p>
-
-                <p class="game-info" x-show="game.lastPlayed">
-                  <strong>Last Played:</strong> <span x-text="game.lastPlayed ? new Date(game.lastPlayed).toLocaleDateString() : 'Never'"></span>
-                </p>
-              </div>
-
-              <div class="game-meta">
-                <a :href="game.uri" target="_blank" class="bgg-link" x-show="game.uri">
-                  View on BGG →
-                </a>
-              </div>
-            </div>
-          </template>
-
-          <template x-if="$store.games.filtered.length === 0 && !$store.app.loading">
-            <p class="empty-state">No games found. Add your first game!</p>
-          </template>
-        </div>
+        <table class="games-table" x-show="$store.games.filtered.length > 0">
+          <thead>
+            <tr>
+              <th>Game Name</th>
+              <th>Status</th>
+              <th>BGG Rank</th>
+              <th>Complexity</th>
+              <th>Times Played</th>
+              <th>Last Played</th>
+              <th>Link</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="game in $store.games.filtered" :key="game.id">
+              <tr>
+                <td x-text="game.name" class="game-name"></td>
+                <td>
+                  <span class="status-badge" x-text="game.status || 'Unknown'"></span>
+                </td>
+                <td x-text="game.ranking || 'N/A'"></td>
+                <td x-text="game.complexity ? game.complexity.toFixed(2) : 'N/A'"></td>
+                <td x-text="game.games || 0"></td>
+                <td x-text="game.lastPlayed ? new Date(game.lastPlayed).toLocaleDateString() : 'Never'"></td>
+                <td>
+                  <a :href="game.uri" target="_blank" class="bgg-link" x-show="game.uri">
+                    BGG →
+                  </a>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
       </div>
 
       <!-- Plays View -->

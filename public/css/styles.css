@@ -224,76 +224,73 @@ body {
   border-color: var(--secondary-color);
 }
 
-/* ===== Games Grid ===== */
-.games-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
-.game-card {
+/* ===== Games Table ===== */
+.games-table {
+  width: 100%;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 0.5rem;
-  padding: 1.5rem;
+  border-collapse: collapse;
+  overflow: hidden;
   box-shadow: var(--shadow);
-  transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.game-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+.games-table thead {
+  background: var(--background);
 }
 
-.game-card h3 {
-  font-size: 1.25rem;
+.games-table th {
+  padding: 1rem;
+  text-align: left;
   font-weight: 600;
-  margin-bottom: 1rem;
-  color: var(--text-primary);
-}
-
-.game-card .game-details {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.game-card .game-status {
   font-size: 0.875rem;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+
+.games-table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.games-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.games-table tbody tr:hover {
+  background: var(--background);
+}
+
+.games-table .game-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  max-width: 300px;
+}
+
+.games-table .status-badge {
+  display: inline-block;
   padding: 0.25rem 0.5rem;
   background: var(--background);
   border-radius: 0.25rem;
-  display: inline-block;
-  width: fit-content;
-}
-
-.game-card .game-info {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.game-card .game-info strong {
-  color: var(--text-primary);
+  font-size: 0.75rem;
   font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
 }
 
-.game-card .game-meta {
-  border-top: 1px solid var(--border);
-  padding-top: 0.75rem;
-  margin-top: 0.75rem;
-}
-
-.game-card .bgg-link {
+.games-table .bgg-link {
   font-size: 0.875rem;
   color: var(--primary-color);
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s;
+  white-space: nowrap;
 }
 
-.game-card .bgg-link:hover {
+.games-table .bgg-link:hover {
   color: var(--primary-hover);
   text-decoration: underline;
 }
@@ -449,8 +446,20 @@ body {
     width: 100%;
   }
 
-  .games-grid {
-    grid-template-columns: 1fr;
+  .games-table {
+    font-size: 0.75rem;
+  }
+
+  .games-table th,
+  .games-table td {
+    padding: 0.5rem;
+  }
+
+  .games-table .game-name {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .error-banner {
