@@ -6,22 +6,188 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Eurogames</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"
-    integrity="sha384-/TgkGk7p307TH7EXJDuUlgG3Ce1UVolAOFopFekQkkXihi5u/6OCvVKyz1W+idaz" crossorigin="anonymous">
-    </script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/styles.css">
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>
+
+  <!-- App scripts (load before Alpine initializes) -->
+  <script src="/js/types.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
 </head>
 
 <body>
-  <header>
-    <h1 id="heading">Eurogames</h1>
-    <p>
-      <span class="link" hx-get="/v1/games" hx-target="#content">Games</span> |
-      <span class="link" hx-get="/results" hx-target="#content">Results</span> |
-      <span class="link" hx-get="/lastPlayed" hx-target="#content">Last Played</span> |
-      <span class="link" hx-get="/winner" hx-target="#content">Winners</span>
-    </p>
-  </header>
-  <div id="content"></div>
+  <div x-data class="app-container" x-cloak>
+    <!-- Header -->
+    <header class="app-header">
+      <h1>🎲 Eurogames</h1>
+      <nav class="main-nav">
+        <button @click="$store.app.setView('games')"
+                :class="{'active': $store.app.currentView === 'games'}">
+          Games
+        </button>
+        <button @click="$store.app.setView('plays')"
+                :class="{'active': $store.app.currentView === 'plays'}">
+          Plays
+        </button>
+        <button @click="$store.app.setView('stats')"
+                :class="{'active': $store.app.currentView === 'stats'}">
+          Statistics
+        </button>
+      </nav>
+    </header>
+
+    <!-- Global Loading Overlay -->
+    <div x-show="$store.app.loading"
+         class="loading-overlay"
+         x-transition>
+      <div class="spinner"></div>
+      <p x-text="$store.app.loadingMessage"></p>
+    </div>
+
+    <!-- Global Error Banner -->
+    <div x-show="$store.app.error"
+         x-transition
+         class="error-banner">
+      <p x-text="$store.app.error"></p>
+      <button @click="$store.app.clearError()">&times;</button>
+    </div>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <!-- Games View -->
+      <div x-show="$store.app.currentView === 'games'"
+           x-transition>
+        <div class="view-header">
+          <h2>Games Collection</h2>
+          <div class="filters">
+            <input type="text"
+                   x-model="$store.games.filter"
+                   placeholder="Search games..."
+                   class="search-input">
+            <select x-model="$store.games.statusFilter" class="status-filter">
+              <option value="">All Statuses</option>
+              <option value="Playing">Playing</option>
+              <option value="Inbox">Inbox</option>
+              <option value="Evaluating">Evaluating</option>
+              <option value="Owned">Owned</option>
+              <option value="Wishlist">Wishlist</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="games-grid">
+          <template x-for="game in $store.games.filtered" :key="game.id">
+            <div class="game-card">
+              <h3 x-text="game.name"></h3>
+
+              <div class="game-details">
+                <p class="game-status">
+                  <strong>Status:</strong> <span x-text="game.status || 'Unknown'"></span>
+                </p>
+
+                <p class="game-info">
+                  <strong>BGG Ranking:</strong> <span x-text="game.ranking"></span>
+                </p>
+
+                <p class="game-info">
+                  <strong>Complexity:</strong> <span x-text="game.complexity ? game.complexity.toFixed(2) : 'N/A'"></span>
+                </p>
+
+                <p class="game-info">
+                  <strong>Times Played:</strong> <span x-text="game.games || 0"></span>
+                </p>
+
+                <p class="game-info" x-show="game.lastPlayed">
+                  <strong>Last Played:</strong> <span x-text="game.lastPlayed ? new Date(game.lastPlayed).toLocaleDateString() : 'Never'"></span>
+                </p>
+              </div>
+
+              <div class="game-meta">
+                <a :href="game.uri" target="_blank" class="bgg-link" x-show="game.uri">
+                  View on BGG →
+                </a>
+              </div>
+            </div>
+          </template>
+
+          <template x-if="$store.games.filtered.length === 0 && !$store.app.loading">
+            <p class="empty-state">No games found. Add your first game!</p>
+          </template>
+        </div>
+      </div>
+
+      <!-- Plays View -->
+      <div x-show="$store.app.currentView === 'plays'"
+           x-transition>
+        <div class="view-header">
+          <h2>Play History</h2>
+        </div>
+        <p class="empty-state">Plays feature coming soon...</p>
+      </div>
+
+      <!-- Stats View -->
+      <div x-show="$store.app.currentView === 'stats'"
+           x-transition>
+        <div class="view-header">
+          <h2>Statistics</h2>
+        </div>
+
+        <!-- Win Stats -->
+        <div class="stats-section" x-show="$store.stats.winners">
+          <h3>Win Statistics</h3>
+          <template x-for="stat in $store.stats.winners" :key="stat.gameId">
+            <div class="stat-card">
+              <h4 x-text="stat.gameName"></h4>
+              <p>Total Plays: <strong x-text="stat.totalPlays"></strong></p>
+              <ul class="winners-list">
+                <template x-for="[player, wins] in Object.entries(stat.wins).sort((a,b) => b[1] - a[1])">
+                  <li>
+                    <span x-text="player"></span>:
+                    <strong x-text="wins"></strong> wins
+                  </li>
+                </template>
+              </ul>
+            </div>
+          </template>
+        </div>
+
+        <!-- Total Stats -->
+        <div class="stats-section" x-show="$store.stats.totals">
+          <h3>Overall Statistics</h3>
+          <table class="stats-table">
+            <thead>
+              <tr>
+                <th>Player</th>
+                <th>Wins</th>
+                <th>Plays</th>
+                <th>Win Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="stat in $store.stats.totals" :key="stat.player">
+                <tr>
+                  <td x-text="stat.player"></td>
+                  <td x-text="stat.wins"></td>
+                  <td x-text="stat.plays"></td>
+                  <td x-text="(stat.winRate * 100).toFixed(1) + '%'"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <button @click="$store.stats.loadAll()"
+                class="btn-primary"
+                x-show="!$store.stats.winners && !$store.stats.totals">
+          Load Statistics
+        </button>
+      </div>
+    </main>
+  </div>
 </body>
 
 </html>

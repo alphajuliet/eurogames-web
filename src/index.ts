@@ -67,6 +67,21 @@ router.get('/v1/games', async (_request, env: Env) => {
 	try {
 		const client = createApiClient(env);
 		const result = await client.listGames();
+
+		// Transform backend response to expected format
+		if (result.success && result.data) {
+			const backendData = result.data as any;
+			const transformedResult = {
+				success: true,
+				status: result.status,
+				data: {
+					games: backendData.data || [],
+					total: backendData.data?.length || 0
+				}
+			};
+			return jsonResponse(transformedResult);
+		}
+
 		return jsonResponse(result);
 	} catch (error) {
 		console.error('Error fetching games:', error);
