@@ -159,7 +159,44 @@
         <div class="view-header">
           <h2>Play History</h2>
         </div>
-        <p class="empty-state">Plays feature coming soon...</p>
+
+        <template x-if="$store.plays.list.length === 0 && !$store.app.loading">
+          <p class="empty-state">No plays recorded yet. Start recording your game plays!</p>
+        </template>
+
+        <table class="plays-table" x-show="$store.plays.list.length > 0">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Game</th>
+              <th>Winner</th>
+              <th>Scores</th>
+              <th>Comment</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="play in $store.plays.list" key="play.id">
+              <tr>
+                <td x-text="play.date"></td>
+                <td class="game-name" x-text="play.name"></td>
+                <td>
+                  <span class="winner-badge" x-show="play.winner" x-text="play.winner"></span>
+                  <span x-show="!play.winner" class="text-muted">-</span>
+                </td>
+                <td x-text="play.scores"></td>
+                <td class="play-notes" x-text="play.comment || '-'"></td>
+                <td>
+                  <button @click="$store.plays.delete(play.id)"
+                          class="btn-delete"
+                          title="Delete play">
+                    🗑️
+                  </button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
       </div>
 
       <!-- Stats View -->

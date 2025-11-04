@@ -26,6 +26,8 @@ document.addEventListener('alpine:init', () => {
       // Load data for the view if needed
       if (view === 'games' && Alpine.store('games').list.length === 0) {
         Alpine.store('games').load();
+      } else if (view === 'plays' && Alpine.store('plays').list.length === 0) {
+        Alpine.store('plays').load();
       } else if (view === 'stats') {
         const stats = Alpine.store('stats');
         if (!stats.winners && !stats.totals) {
@@ -192,7 +194,9 @@ document.addEventListener('alpine:init', () => {
   // ===== PLAYS STORE =====
   Alpine.store('plays', {
     list: [],
-    filter: {},
+    filter: '',
+    sortBy: 'date',
+    sortDirection: 'desc',
 
     /**
      * Load all plays from API
@@ -200,13 +204,15 @@ document.addEventListener('alpine:init', () => {
     async load() {
       Alpine.store('app').setLoading(true, 'Loading plays...');
 
-      const response = await api.getPlays();
+      const response = await api.getPlays({ limit: '50' });
+      console.log('Plays API response:', response);
 
       if (response.success && response.data) {
         this.list = response.data.plays || [];
         console.log('Loaded plays:', this.list);
       } else {
         this.list = []; // Ensure list is always an array
+        console.error('Failed to load plays:', response);
         Alpine.store('app').setError(response.error || 'Failed to load plays');
       }
 
@@ -236,6 +242,10 @@ document.addEventListener('alpine:init', () => {
      * @returns {Promise<boolean>}
      */
     async delete(id) {
+      if (!confirm('Are you sure you want to delete this play record?')) {
+        return false;
+      }
+
       const response = await api.deletePlay(id);
 
       if (response.success) {
@@ -245,6 +255,69 @@ document.addEventListener('alpine:init', () => {
         Alpine.store('app').setError(response.error || 'Failed to delete play');
         return false;
       }
+    },
+
+    /**
+     * Set sort column and toggle direction
+     * @param {string} column
+     */
+    setSortBy(column) {
+      if (this.sortBy === column) {
+        // Toggle direction if same column
+        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        // New column, default to ascending
+        this.sortBy = column;
+        this.sortDirection = 'asc';
+      }
+    },
+
+    /**
+     * Get filtered and sorted plays
+     * @returns {PlayRecord[]}
+     */
+    get filtered() {
+      // Ensure list is always an array
+      if (!Array.isArray(this.list)) {
+        return [];
+      }
+
+      let result = this.list;
+
+      // Apply text filter
+      if (this.filter) {
+        const filterLower = this.filter.toLowerCase();
+        result = result.filter(p =>
+          (p.name && p.name.toLowerCase().includes(filterLower)) ||
+          (p.winner && p.winner.toLowerCase().includes(filterLower)) ||
+          (p.comment && p.comment.toLowerCase().includes(filterLower)) ||
+          (p.players && Array.isArray(p.players) && p.players.some(player => player.toLowerCase().includes(filterLower)))
+        );
+      }
+
+      // Apply sort
+      result = [...result].sort((a, b) => {
+        let compareResult = 0;
+
+        if (this.sortBy === 'date') {
+          const dateA = new Date(a.date).getTime();
+          const dateB = new Date(b.date).getTime();
+          compareResult = dateA - dateB;
+        } else if (this.sortBy === 'gameName') {
+          compareResult = (a.name || '').localeCompare(b.name || '');
+        } else if (this.sortBy === 'players') {
+          const aLength = a.players && Array.isArray(a.players) ? a.players.length : 0;
+          const bLength = b.players && Array.isArray(b.players) ? b.players.length : 0;
+          compareResult = aLength - bLength;
+        } else if (this.sortBy === 'winner') {
+          compareResult = (a.winner || '').localeCompare(b.winner || '');
+        }
+
+        // Apply sort direction
+        return this.sortDirection === 'asc' ? compareResult : -compareResult;
+      });
+
+      return result;
     }
   });
 

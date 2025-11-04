@@ -213,11 +213,33 @@ router.get('/v1/games/:id/history', async (request, env: Env) => {
 /**
  * GET /v1/plays - List game plays with optional filtering
  */
-router.get('/v1/plays', async (_request, env: Env) => {
+router.get('/v1/plays', async (request, env: Env) => {
 	try {
 		const client = createApiClient(env);
 
-		const result = await client.listPlays();
+		// Extract query parameters from the request
+		const url = new URL(request.url);
+		const filter: Record<string, string> = {};
+		url.searchParams.forEach((value, key) => {
+			filter[key] = value;
+		});
+
+		const result = await client.listPlays(Object.keys(filter).length > 0 ? filter : undefined);
+
+		// Transform backend response to expected format
+		if (result.success && result.data) {
+			const backendData = result.data as any;
+			const transformedResult = {
+				success: true,
+				status: result.status,
+				data: {
+					plays: backendData.data || [],
+					total: backendData.data?.length || 0
+				}
+			};
+			return jsonResponse(transformedResult);
+		}
+
 		return jsonResponse(result);
 	} catch (error) {
 		console.error('Error fetching plays:', error);
