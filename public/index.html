@@ -158,13 +158,19 @@
            x-transition>
         <div class="view-header">
           <h2>Play History</h2>
+          <div class="filters">
+            <input type="text"
+                   x-model="$store.plays.filter"
+                   placeholder="Search plays..."
+                   class="search-input">
+          </div>
         </div>
 
-        <template x-if="$store.plays.list.length === 0 && !$store.app.loading">
-          <p class="empty-state">No plays recorded yet. Start recording your game plays!</p>
+        <template x-if="$store.plays.filtered.length === 0 && !$store.app.loading">
+          <p class="empty-state">No plays found.</p>
         </template>
 
-        <table class="plays-table" x-show="$store.plays.list.length > 0">
+        <table class="plays-table" x-show="$store.plays.filtered.length > 0">
           <thead>
             <tr>
               <th>Date</th>
@@ -176,7 +182,7 @@
             </tr>
           </thead>
           <tbody>
-            <template x-for="play in $store.plays.list" key="play.id">
+            <template x-for="play in $store.plays.filtered" key="play.id">
               <tr>
                 <td x-text="play.date"></td>
                 <td class="game-name" x-text="play.name"></td>
