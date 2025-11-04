@@ -68,6 +68,7 @@ document.addEventListener('alpine:init', () => {
     filter: '',
     statusFilter: '',
     sortBy: 'name',
+    sortDirection: 'asc',
 
     /**
      * Load all games from API
@@ -125,6 +126,21 @@ document.addEventListener('alpine:init', () => {
     },
 
     /**
+     * Set sort column and toggle direction
+     * @param {string} column
+     */
+    setSortBy(column) {
+      if (this.sortBy === column) {
+        // Toggle direction if same column
+        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        // New column, default to ascending
+        this.sortBy = column;
+        this.sortDirection = 'asc';
+      }
+    },
+
+    /**
      * Get filtered and sorted games
      * @returns {Game[]}
      */
@@ -147,16 +163,26 @@ document.addEventListener('alpine:init', () => {
 
       // Apply sort
       result = [...result].sort((a, b) => {
+        let compareResult = 0;
+
         if (this.sortBy === 'name') {
-          return a.name.localeCompare(b.name);
-        } else if (this.sortBy === 'date') {
-          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+          compareResult = a.name.localeCompare(b.name);
+        } else if (this.sortBy === 'status') {
+          compareResult = (a.status || '').localeCompare(b.status || '');
         } else if (this.sortBy === 'ranking') {
-          return (a.ranking || 99999) - (b.ranking || 99999);
+          compareResult = (a.ranking || 99999) - (b.ranking || 99999);
         } else if (this.sortBy === 'complexity') {
-          return (b.complexity || 0) - (a.complexity || 0);
+          compareResult = (a.complexity || 0) - (b.complexity || 0);
+        } else if (this.sortBy === 'games') {
+          compareResult = (a.games || 0) - (b.games || 0);
+        } else if (this.sortBy === 'lastPlayed') {
+          const dateA = a.lastPlayed ? new Date(a.lastPlayed).getTime() : 0;
+          const dateB = b.lastPlayed ? new Date(b.lastPlayed).getTime() : 0;
+          compareResult = dateA - dateB;
         }
-        return 0;
+
+        // Apply sort direction
+        return this.sortDirection === 'asc' ? compareResult : -compareResult;
       });
 
       return result;

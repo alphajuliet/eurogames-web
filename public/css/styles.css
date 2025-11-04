@@ -249,6 +249,22 @@ body {
   white-space: nowrap;
 }
 
+.games-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.games-table th.sortable:hover {
+  background: var(--border);
+}
+
+.games-table .sort-indicator {
+  margin-left: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--primary-color);
+}
+
 .games-table td {
   padding: 0.875rem 1rem;
   border-bottom: 1px solid var(--border);

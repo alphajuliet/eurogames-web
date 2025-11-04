@@ -86,12 +86,48 @@
         <table class="games-table" x-show="$store.games.filtered.length > 0">
           <thead>
             <tr>
-              <th>Game Name</th>
-              <th>Status</th>
-              <th>BGG Rank</th>
-              <th>Complexity</th>
-              <th>Times Played</th>
-              <th>Last Played</th>
+              <th @click="$store.games.setSortBy('name')" class="sortable">
+                Game Name
+                <span class="sort-indicator" x-show="$store.games.sortBy === 'name'">
+                  <span x-show="$store.games.sortDirection === 'asc'">↑</span>
+                  <span x-show="$store.games.sortDirection === 'desc'">↓</span>
+                </span>
+              </th>
+              <th @click="$store.games.setSortBy('status')" class="sortable">
+                Status
+                <span class="sort-indicator" x-show="$store.games.sortBy === 'status'">
+                  <span x-show="$store.games.sortDirection === 'asc'">↑</span>
+                  <span x-show="$store.games.sortDirection === 'desc'">↓</span>
+                </span>
+              </th>
+              <th @click="$store.games.setSortBy('ranking')" class="sortable">
+                BGG Rank
+                <span class="sort-indicator" x-show="$store.games.sortBy === 'ranking'">
+                  <span x-show="$store.games.sortDirection === 'asc'">↑</span>
+                  <span x-show="$store.games.sortDirection === 'desc'">↓</span>
+                </span>
+              </th>
+              <th @click="$store.games.setSortBy('complexity')" class="sortable">
+                Complexity
+                <span class="sort-indicator" x-show="$store.games.sortBy === 'complexity'">
+                  <span x-show="$store.games.sortDirection === 'asc'">↑</span>
+                  <span x-show="$store.games.sortDirection === 'desc'">↓</span>
+                </span>
+              </th>
+              <th @click="$store.games.setSortBy('games')" class="sortable">
+                Times Played
+                <span class="sort-indicator" x-show="$store.games.sortBy === 'games'">
+                  <span x-show="$store.games.sortDirection === 'asc'">↑</span>
+                  <span x-show="$store.games.sortDirection === 'desc'">↓</span>
+                </span>
+              </th>
+              <th @click="$store.games.setSortBy('lastPlayed')" class="sortable">
+                Last Played
+                <span class="sort-indicator" x-show="$store.games.sortBy === 'lastPlayed'">
+                  <span x-show="$store.games.sortDirection === 'asc'">↑</span>
+                  <span x-show="$store.games.sortDirection === 'desc'">↓</span>
+                </span>
+              </th>
               <th>Link</th>
             </tr>
           </thead>
