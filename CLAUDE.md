@@ -329,3 +329,5 @@ curl -X POST http://localhost:8787/v1/plays \
 - **Stateless:** Worker has no persistent state; each request is independent.
 - **Version API:** All endpoints use `/v1/` prefix for API versioning.
 - **Favicon:** SVG favicon of a pretzel is served at `/favicon.svg`.
+
+BEFORE ANYTHING ELSE: run 'bd onboard' and follow the instructions.
