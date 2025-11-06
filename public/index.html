@@ -230,16 +230,16 @@
                   <span x-show="$store.lastPlayed.sortDirection === 'desc'">↓</span>
                 </span>
               </th>
-              <th @click="$store.lastPlayed.setSortBy('lastPlayed')" class="sortable">
-                Last Played
-                <span class="sort-indicator" x-show="$store.lastPlayed.sortBy === 'lastPlayed'">
+              <th @click="$store.lastPlayed.setSortBy('timesPlayed')" class="sortable">
+                Times Played
+                <span class="sort-indicator" x-show="$store.lastPlayed.sortBy === 'timesPlayed'">
                   <span x-show="$store.lastPlayed.sortDirection === 'asc'">↑</span>
                   <span x-show="$store.lastPlayed.sortDirection === 'desc'">↓</span>
                 </span>
               </th>
-              <th @click="$store.lastPlayed.setSortBy('timesPlayed')" class="sortable">
-                Times Played
-                <span class="sort-indicator" x-show="$store.lastPlayed.sortBy === 'timesPlayed'">
+              <th @click="$store.lastPlayed.setSortBy('lastPlayed')" class="sortable">
+                Last Played
+                <span class="sort-indicator" x-show="$store.lastPlayed.sortBy === 'lastPlayed'">
                   <span x-show="$store.lastPlayed.sortDirection === 'asc'">↑</span>
                   <span x-show="$store.lastPlayed.sortDirection === 'desc'">↓</span>
                 </span>
@@ -257,8 +257,8 @@
             <template x-for="game in $store.lastPlayed.sorted" key="game.gameId">
               <tr>
                 <td class="game-name" x-text="game.name"></td>
-                <td x-text="game.lastPlayed ? new Date(game.lastPlayed).toLocaleDateString() : 'Never'"></td>
                 <td x-text="game.timesPlayed"></td>
+                <td x-text="game.lastPlayed ? new Date(game.lastPlayed).toLocaleDateString() : 'Never'"></td>
                 <td x-text="game.elapsedDays !== null ? game.elapsedDays : '-'"></td>
               </tr>
             </template>
