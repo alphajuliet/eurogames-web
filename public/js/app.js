@@ -206,7 +206,7 @@ document.addEventListener('alpine:init', () => {
     async load() {
       Alpine.store('app').setLoading(true, 'Loading plays...');
 
-      const response = await api.getPlays({ limit: '50' });
+      const response = await api.getPlays({ limit: '100' });
       console.log('Plays API response:', response);
 
       if (response.success && response.data) {
