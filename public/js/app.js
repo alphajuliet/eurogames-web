@@ -28,6 +28,8 @@ document.addEventListener('alpine:init', () => {
         Alpine.store('games').load();
       } else if (view === 'plays' && Alpine.store('plays').list.length === 0) {
         Alpine.store('plays').load();
+      } else if (view === 'lastPlayed' && Alpine.store('lastPlayed').list.length === 0) {
+        Alpine.store('lastPlayed').load();
       } else if (view === 'stats') {
         const stats = Alpine.store('stats');
         if (!stats.winners && !stats.totals) {
@@ -321,11 +323,101 @@ document.addEventListener('alpine:init', () => {
     }
   });
 
+  // ===== LAST PLAYED STORE =====
+  Alpine.store('lastPlayed', {
+    list: [],
+    sortBy: 'elapsedDays',
+    sortDirection: 'asc',
+
+    /**
+     * Load last played data from API
+     */
+    async load() {
+      Alpine.store('app').setLoading(true, 'Loading last played data...');
+
+      const response = await api.getLastPlayed();
+      console.log('Last Played API response:', response);
+
+      if (response.success && response.data) {
+        // Calculate elapsed days for each game
+        const now = new Date();
+        const games = Array.isArray(response.data) ? response.data : (response.data.data || response.data.games || []);
+
+        this.list = games.map(game => {
+          const lastPlayedDate = game.lastPlayed ? new Date(game.lastPlayed) : null;
+          const elapsedDays = lastPlayedDate
+            ? Math.floor((now.getTime() - lastPlayedDate.getTime()) / (1000 * 60 * 60 * 24))
+            : null;
+
+          return {
+            ...game,
+            elapsedDays,
+            timesPlayed: game.games || 0
+          };
+        });
+
+        console.log('Loaded last played data:', this.list);
+      } else {
+        this.list = [];
+        console.error('Failed to load last played data:', response);
+        Alpine.store('app').setError(response.error || 'Failed to load last played data');
+      }
+
+      Alpine.store('app').setLoading(false);
+    },
+
+    /**
+     * Set sort column and toggle direction
+     * @param {string} column
+     */
+    setSortBy(column) {
+      if (this.sortBy === column) {
+        // Toggle direction if same column
+        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        // New column, default to ascending
+        this.sortBy = column;
+        this.sortDirection = 'asc';
+      }
+    },
+
+    /**
+     * Get sorted last played data
+     * @returns {Array}
+     */
+    get sorted() {
+      let result = [...this.list];
+
+      // Apply sort
+      result = result.sort((a, b) => {
+        let compareResult = 0;
+
+        if (this.sortBy === 'gameName') {
+          compareResult = (a.gameName || '').localeCompare(b.gameName || '');
+        } else if (this.sortBy === 'lastPlayed') {
+          const dateA = a.lastPlayed ? new Date(a.lastPlayed).getTime() : 0;
+          const dateB = b.lastPlayed ? new Date(b.lastPlayed).getTime() : 0;
+          compareResult = dateA - dateB;
+        } else if (this.sortBy === 'timesPlayed') {
+          compareResult = (a.timesPlayed || 0) - (b.timesPlayed || 0);
+        } else if (this.sortBy === 'elapsedDays') {
+          const daysA = a.elapsedDays !== null ? a.elapsedDays : 999999;
+          const daysB = b.elapsedDays !== null ? b.elapsedDays : 999999;
+          compareResult = daysA - daysB;
+        }
+
+        // Apply sort direction
+        return this.sortDirection === 'asc' ? compareResult : -compareResult;
+      });
+
+      return result;
+    }
+  });
+
   // ===== STATS STORE =====
   Alpine.store('stats', {
     winners: null,
     totals: null,
-    lastPlayed: null,
     recent: null,
 
     /**
@@ -374,37 +466,6 @@ document.addEventListener('alpine:init', () => {
       }
 
       Alpine.store('app').setLoading(false);
-    },
-
-    /**
-     * Load last played dates
-     */
-    async loadLastPlayed() {
-      const response = await api.getLastPlayed();
-
-      if (response.success && response.data) {
-        this.lastPlayed = response.data.games || [];
-        console.log('Loaded last played:', this.lastPlayed);
-      } else {
-        this.lastPlayed = []; // Ensure always an array
-        Alpine.store('app').setError(response.error || 'Failed to load last played');
-      }
-    },
-
-    /**
-     * Load recent plays
-     * @param {number} [limit]
-     */
-    async loadRecent(limit = 10) {
-      const response = await api.getRecentPlays(limit);
-
-      if (response.success && response.data) {
-        this.recent = response.data.plays || [];
-        console.log('Loaded recent plays:', this.recent);
-      } else {
-        this.recent = []; // Ensure always an array
-        Alpine.store('app').setError(response.error || 'Failed to load recent plays');
-      }
     }
   });
 

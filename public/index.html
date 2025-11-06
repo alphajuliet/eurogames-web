@@ -33,6 +33,10 @@
                 :class="{'active': $store.app.currentView === 'plays'}">
           Plays
         </button>
+        <button @click="$store.app.setView('lastPlayed')"
+                :class="{'active': $store.app.currentView === 'lastPlayed'}">
+          Last Played
+        </button>
         <button @click="$store.app.setView('stats')"
                 :class="{'active': $store.app.currentView === 'stats'}">
           Statistics
@@ -199,6 +203,63 @@
                     🗑️
                   </button>
                 </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Last Played View -->
+      <div x-show="$store.app.currentView === 'lastPlayed'"
+           x-transition>
+        <div class="view-header">
+          <h2>Last Played</h2>
+        </div>
+
+        <template x-if="$store.lastPlayed.sorted.length === 0 && !$store.app.loading">
+          <p class="empty-state">No last played data available.</p>
+        </template>
+
+        <table class="plays-table" x-show="$store.lastPlayed.sorted.length > 0">
+          <thead>
+            <tr>
+              <th @click="$store.lastPlayed.setSortBy('gameName')" class="sortable">
+                Game Name
+                <span class="sort-indicator" x-show="$store.lastPlayed.sortBy === 'gameName'">
+                  <span x-show="$store.lastPlayed.sortDirection === 'asc'">↑</span>
+                  <span x-show="$store.lastPlayed.sortDirection === 'desc'">↓</span>
+                </span>
+              </th>
+              <th @click="$store.lastPlayed.setSortBy('lastPlayed')" class="sortable">
+                Last Played
+                <span class="sort-indicator" x-show="$store.lastPlayed.sortBy === 'lastPlayed'">
+                  <span x-show="$store.lastPlayed.sortDirection === 'asc'">↑</span>
+                  <span x-show="$store.lastPlayed.sortDirection === 'desc'">↓</span>
+                </span>
+              </th>
+              <th @click="$store.lastPlayed.setSortBy('timesPlayed')" class="sortable">
+                Times Played
+                <span class="sort-indicator" x-show="$store.lastPlayed.sortBy === 'timesPlayed'">
+                  <span x-show="$store.lastPlayed.sortDirection === 'asc'">↑</span>
+                  <span x-show="$store.lastPlayed.sortDirection === 'desc'">↓</span>
+                </span>
+              </th>
+              <th @click="$store.lastPlayed.setSortBy('elapsedDays')" class="sortable">
+                Days Since Last Play
+                <span class="sort-indicator" x-show="$store.lastPlayed.sortBy === 'elapsedDays'">
+                  <span x-show="$store.lastPlayed.sortDirection === 'asc'">↑</span>
+                  <span x-show="$store.lastPlayed.sortDirection === 'desc'">↓</span>
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="game in $store.lastPlayed.sorted" key="game.gameId">
+              <tr>
+                <td class="game-name" x-text="game.name"></td>
+                <td x-text="game.lastPlayed ? new Date(game.lastPlayed).toLocaleDateString() : 'Never'"></td>
+                <td x-text="game.timesPlayed"></td>
+                <td x-text="game.elapsedDays !== null ? game.elapsedDays : '-'"></td>
               </tr>
             </template>
           </tbody>
