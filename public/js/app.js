@@ -255,13 +255,17 @@ document.addEventListener('alpine:init', () => {
         return false;
       }
 
+      console.log('Deleting play with ID:', id);
       const response = await api.deletePlay(id);
+      console.log('Delete response:', response);
 
       if (response.success) {
         await this.load(); // Reload list
         return true;
       } else {
-        Alpine.store('app').setError(response.error || 'Failed to delete play');
+        const errorMsg = `Failed to delete play (${response.status}): ${response.error || 'Unknown error'}`;
+        console.error(errorMsg);
+        Alpine.store('app').setError(errorMsg);
         return false;
       }
     },

@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(bd update:*)",
-      "Bash(bd ready:*)"
+      "Bash(bd ready:*)",
+      "Bash(bd close:*)"
     ],
     "deny": [],
     "ask": []
