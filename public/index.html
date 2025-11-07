@@ -192,7 +192,7 @@
                         x-model="gameId"
                         required>
                   <option value="">Select game...</option>
-                  <template x-for="game in $store.games.list" :key="game.id">
+                  <template x-for="game in $store.games.list.filter(g => g.status === 'Playing')" :key="game.id">
                     <option :value="game.id" x-text="game.name"></option>
                   </template>
                 </select>

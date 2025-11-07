@@ -26,8 +26,15 @@ document.addEventListener('alpine:init', () => {
       // Load data for the view if needed
       if (view === 'games' && Alpine.store('games').list.length === 0) {
         Alpine.store('games').load();
-      } else if (view === 'plays' && Alpine.store('plays').list.length === 0) {
-        Alpine.store('plays').load();
+      } else if (view === 'plays') {
+        // Load games for the dropdown if not already loaded
+        if (Alpine.store('games').list.length === 0) {
+          Alpine.store('games').load();
+        }
+        // Load plays if not already loaded
+        if (Alpine.store('plays').list.length === 0) {
+          Alpine.store('plays').load();
+        }
       } else if (view === 'lastPlayed' && Alpine.store('lastPlayed').list.length === 0) {
         Alpine.store('lastPlayed').load();
       } else if (view === 'stats') {
