@@ -1,5 +1,9 @@
 # CLAUDE.md
 
+**Note**: This project uses [bd (beads)](https://github.com/steveyegge/beads)
+for issue tracking. Use `bd` commands instead of markdown TODOs.
+See AGENTS.md for workflow details.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
@@ -329,5 +333,3 @@ curl -X POST http://localhost:8787/v1/plays \
 - **Stateless:** Worker has no persistent state; each request is independent.
 - **Version API:** All endpoints use `/v1/` prefix for API versioning.
 - **Favicon:** SVG favicon of a pretzel is served at `/favicon.svg`.
-
-BEFORE ANYTHING ELSE: run 'bd onboard' and follow the instructions.
