@@ -548,12 +548,14 @@ document.addEventListener('alpine:init', () => {
       this.submitting = true;
 
       const playData = {
-        gameId: parseInt(this.gameId),
+        game_id: parseInt(this.gameId),
         date: this.date,
         winner: this.winner === 'Draw' ? undefined : this.winner,
         scores: this.scores || undefined,
         comment: this.notes || undefined
       };
+
+      console.log('Submitting play data:', JSON.stringify(playData, null, 2));
 
       const success = await this.$store.plays.record(playData);
       this.submitting = false;
