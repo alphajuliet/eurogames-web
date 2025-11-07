@@ -514,8 +514,8 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('recordPlayForm', () => ({
     gameId: '',
     date: new Date().toISOString().split('T')[0],
-    players: '',
     winner: '',
+    scores: '',
     notes: '',
     submitting: false,
     error: null,
@@ -533,17 +533,13 @@ document.addEventListener('alpine:init', () => {
         return;
       }
 
-      if (!this.players) {
-        this.error = 'Players are required';
+      if (!this.winner) {
+        this.error = 'Winner is required';
         return;
       }
 
-      const playersArray = this.players.split(',').map(p => p.trim()).filter(p => p);
-
-      if (playersArray.length === 0) {
-        this.error = 'At least one player is required';
-        return;
-      }
+      // Auto-populate players based on the standard players (Andrew and Trish)
+      const playersArray = this.winner === 'Draw' ? ['Andrew', 'Trish'] : ['Andrew', 'Trish'];
 
       this.submitting = true;
 
@@ -551,7 +547,8 @@ document.addEventListener('alpine:init', () => {
         gameId: this.gameId,
         date: this.date,
         players: playersArray,
-        winner: this.winner || undefined,
+        winner: this.winner === 'Draw' ? undefined : this.winner,
+        scores: this.scores || undefined,
         notes: this.notes || undefined
       };
 
@@ -562,8 +559,8 @@ document.addEventListener('alpine:init', () => {
         // Reset form
         this.gameId = '';
         this.date = new Date().toISOString().split('T')[0];
-        this.players = '';
         this.winner = '';
+        this.scores = '';
         this.notes = '';
       }
     }

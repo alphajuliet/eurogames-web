@@ -170,6 +170,73 @@
           </div>
         </div>
 
+        <!-- Add New Play Form -->
+        <div class="compact-form" x-data="recordPlayForm">
+          <h3>Add New Play</h3>
+
+          <div x-show="error" class="form-error" x-text="error"></div>
+
+          <form @submit.prevent="submit">
+            <div class="form-grid">
+              <div class="form-field">
+                <label for="play-date">Date</label>
+                <input type="date"
+                       id="play-date"
+                       x-model="date"
+                       required>
+              </div>
+
+              <div class="form-field">
+                <label for="play-game">Game</label>
+                <select id="play-game"
+                        x-model="gameId"
+                        required>
+                  <option value="">Select game...</option>
+                  <template x-for="game in $store.games.list" :key="game.id">
+                    <option :value="game.id" x-text="game.name"></option>
+                  </template>
+                </select>
+              </div>
+
+              <div class="form-field">
+                <label for="play-winner">Winner</label>
+                <select id="play-winner"
+                        x-model="winner"
+                        required>
+                  <option value="">Select winner...</option>
+                  <option value="Andrew">Andrew</option>
+                  <option value="Trish">Trish</option>
+                  <option value="Draw">Draw</option>
+                </select>
+              </div>
+
+              <div class="form-field">
+                <label for="play-scores">Scores</label>
+                <input type="text"
+                       id="play-scores"
+                       x-model="scores"
+                       placeholder="Andrew: 45, Trish: 38">
+              </div>
+
+              <div class="form-field full-width">
+                <label for="play-notes">Comments</label>
+                <input type="text"
+                       id="play-notes"
+                       x-model="notes"
+                       placeholder="Any additional notes...">
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit"
+                      class="btn-submit"
+                      :disabled="submitting"
+                      x-text="submitting ? 'Adding...' : 'Add Play'">
+              </button>
+            </div>
+          </form>
+        </div>
+
         <template x-if="$store.plays.filtered.length === 0 && !$store.app.loading">
           <p class="empty-state">No plays found.</p>
         </template>
