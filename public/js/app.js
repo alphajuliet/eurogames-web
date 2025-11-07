@@ -545,18 +545,14 @@ document.addEventListener('alpine:init', () => {
         return;
       }
 
-      // Auto-populate players based on the standard players (Andrew and Trish)
-      const playersArray = this.winner === 'Draw' ? ['Andrew', 'Trish'] : ['Andrew', 'Trish'];
-
       this.submitting = true;
 
       const playData = {
-        gameId: this.gameId,
+        gameId: parseInt(this.gameId),
         date: this.date,
-        players: playersArray,
         winner: this.winner === 'Draw' ? undefined : this.winner,
         scores: this.scores || undefined,
-        notes: this.notes || undefined
+        comment: this.notes || undefined
       };
 
       const success = await this.$store.plays.record(playData);
