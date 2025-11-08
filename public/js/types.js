@@ -29,14 +29,16 @@
 
 /**
  * @typedef {Object} PlayRecord
- * @property {string} id - Unique play identifier
- * @property {string} gameId - ID of the game played
+ * @property {number} play_id - Unique play record identifier (held for DELETE operations)
+ * @property {number} id - Game ID
  * @property {string} date - ISO date string when played
- * @property {string[]} players - Array of player names
+ * @property {string} name - Game name
+ * @property {string[]} [players] - Array of player names
  * @property {string} [winner] - Name of the winner
- * @property {string} [notes] - Notes about this play
- * @property {string} createdAt - ISO timestamp when created
- * @property {string} updatedAt - ISO timestamp when last updated
+ * @property {string} [scores] - Scores from the play
+ * @property {string} [comment] - Notes about this play
+ * @property {string} [createdAt] - ISO timestamp when created
+ * @property {string} [updatedAt] - ISO timestamp when last updated
  */
 
 /**
@@ -86,8 +88,8 @@
 
 /**
  * @typedef {Object} RecentPlay
- * @property {string} id - Play identifier
- * @property {string} gameId - Game identifier
+ * @property {string} play_id - Play identifier
+ * @property {string} game_id - Game identifier
  * @property {string} gameName - Game name
  * @property {string} date - ISO date string when played
  * @property {string} [winner] - Name of the winner

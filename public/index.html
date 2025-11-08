@@ -136,7 +136,7 @@
             </tr>
           </thead>
           <tbody>
-            <template x-for="game in $store.games.filtered" :key="game.id">
+            <template x-for="game in $store.games.filtered" key="game.id">
               <tr>
                 <td x-text="game.name" class="game-name"></td>
                 <td>
@@ -192,7 +192,7 @@
                         x-model="gameId"
                         required>
                   <option value="">Select game...</option>
-                  <template x-for="game in $store.games.list.filter(g => g.status === 'Playing')" :key="game.id">
+                  <template x-for="game in $store.games.list.filter(g => g.status === 'Playing')" key="game.id">
                     <option :value="game.id" x-text="game.name"></option>
                   </template>
                 </select>
@@ -253,7 +253,7 @@
             </tr>
           </thead>
           <tbody>
-            <template x-for="play in $store.plays.filtered" key="play.id">
+            <template x-for="play in $store.plays.filtered" key="play.play_id">
               <tr>
                 <td x-text="play.date"></td>
                 <td class="game-name" x-text="play.name"></td>
@@ -264,7 +264,7 @@
                 <td x-text="play.scores"></td>
                 <td class="play-notes" x-text="play.comment || '-'"></td>
                 <td>
-                  <button @click="$store.plays.delete(play.id)"
+                  <button @click="$store.plays.delete(play.play_id)"
                           class="btn-delete"
                           title="Delete play">
                     🗑️
@@ -343,7 +343,7 @@
         <!-- Win Stats -->
         <div class="stats-section" x-show="$store.stats.winners">
           <h3>Win Statistics</h3>
-          <template x-for="stat in $store.stats.winners" :key="stat.gameId">
+          <template x-for="stat in $store.stats.winners" key="stat.gameId">
             <div class="stat-card">
               <h4 x-text="stat.gameName"></h4>
               <p>Total Plays: <strong x-text="stat.totalPlays"></strong></p>
@@ -372,7 +372,7 @@
               </tr>
             </thead>
             <tbody>
-              <template x-for="stat in $store.stats.totals" :key="stat.player">
+              <template x-for="stat in $store.stats.totals" key="stat.player">
                 <tr>
                   <td x-text="stat.player"></td>
                   <td x-text="stat.wins"></td>
