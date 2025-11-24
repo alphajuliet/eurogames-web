@@ -145,7 +145,7 @@
                 <td x-text="game.ranking || 'N/A'"></td>
                 <td x-text="game.complexity ? game.complexity.toFixed(2) : 'N/A'"></td>
                 <td x-text="game.games || 0"></td>
-                <td x-text="game.lastPlayed ? new Date(game.lastPlayed).toLocaleDateString() : 'Never'"></td>
+                <td x-text="game.lastPlayed ? new Date(game.lastPlayed).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: '2-digit' }).split(' ').join('-') : 'Never'"></td>
                 <td>
                   <a :href="game.uri" target="_blank" class="bgg-link" x-show="game.uri">
                     BGG →
@@ -325,7 +325,7 @@
               <tr>
                 <td class="game-name" x-text="game.name"></td>
                 <td x-text="game.timesPlayed"></td>
-                <td x-text="game.lastPlayed ? new Date(game.lastPlayed).toLocaleDateString() : 'Never'"></td>
+                <td x-text="game.lastPlayed ? new Date(game.lastPlayed).toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: '2-digit' }).split(' ').join('-') : 'Never'"></td>
                 <td x-text="game.elapsedDays !== null ? game.elapsedDays : '-'"></td>
               </tr>
             </template>

@@ -105,7 +105,34 @@ export class ApiClient {
 			}
 
 			const response = await fetch(url, fetchOptions);
-			const data = (await response.json()) as T;
+
+			// Read body once as text, then parse as JSON if needed
+			const text = await response.text();
+			let data: T | undefined;
+
+			// Try to parse response as JSON
+			if (text) {
+				try {
+					data = JSON.parse(text) as T;
+				} catch {
+					// If JSON parsing fails and response is not OK, return the text as error
+					if (!response.ok) {
+						return {
+							success: false,
+							status: response.status,
+							data: undefined,
+							error: text,
+						};
+					}
+					// If response is OK but not JSON, that's an error too
+					return {
+						success: false,
+						status: response.status,
+						data: undefined,
+						error: 'Response is not valid JSON',
+					};
+				}
+			}
 
 			return {
 				success: response.ok,

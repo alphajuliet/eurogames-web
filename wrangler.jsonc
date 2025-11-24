@@ -7,13 +7,21 @@
 	"name": "eurogames-web",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-11-01",
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
 	"assets": {
 		// The path to the directory containing the `index.html` file to be served at `/`
 		"directory": "./public"
 	},
 	"observability": {
 		"enabled": true
-	}
+	},
+	/**
+	 * Environment Variables
+	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
+	 */
+	"vars": {
+		"EUROGAMES_API_URL": "https://eurogames.web-c10.workers.dev"
+	},
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
