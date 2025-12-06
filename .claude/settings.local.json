@@ -8,7 +8,9 @@
       "Bash(bd add:*)",
       "Bash(bd --help:*)",
       "Bash(bd create:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(bd list:*)",
+      "Bash(bd import:*)"
     ],
     "deny": [],
     "ask": []
