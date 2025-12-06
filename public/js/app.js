@@ -430,6 +430,8 @@ document.addEventListener('alpine:init', () => {
     winners: null,
     totals: null,
     recent: null,
+    gamesSortBy: 'gameName',
+    gamesSortDirection: 'asc',
 
     /**
      * Load all statistics
@@ -442,6 +444,59 @@ document.addEventListener('alpine:init', () => {
     },
 
     /**
+     * Set sort column for game statistics and toggle direction
+     * @param {string} column
+     */
+    setGamesSortBy(column) {
+      if (this.gamesSortBy === column) {
+        // Toggle direction if same column
+        this.gamesSortDirection = this.gamesSortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        // New column, default to ascending
+        this.gamesSortBy = column;
+        this.gamesSortDirection = 'asc';
+      }
+    },
+
+    /**
+     * Get sorted game statistics
+     * @returns {Array}
+     */
+    get sortedGames() {
+      if (!Array.isArray(this.winners)) {
+        return [];
+      }
+
+      let result = [...this.winners];
+
+      // Apply sort
+      result = result.sort((a, b) => {
+        let compareResult = 0;
+
+        if (this.gamesSortBy === 'gameName') {
+          compareResult = a.gameName.localeCompare(b.gameName);
+        } else if (this.gamesSortBy === 'totalPlays') {
+          compareResult = a.totalPlays - b.totalPlays;
+        } else if (this.gamesSortBy === 'andrewWins') {
+          compareResult = a.wins.andrew - b.wins.andrew;
+        } else if (this.gamesSortBy === 'trishWins') {
+          compareResult = a.wins.trish - b.wins.trish;
+        } else if (this.gamesSortBy === 'draws') {
+          compareResult = a.wins.draw - b.wins.draw;
+        } else if (this.gamesSortBy === 'andrewWinRate') {
+          const rateA = a.wins.andrew / a.totalPlays;
+          const rateB = b.wins.andrew / b.totalPlays;
+          compareResult = rateA - rateB;
+        }
+
+        // Apply sort direction
+        return this.gamesSortDirection === 'asc' ? compareResult : -compareResult;
+      });
+
+      return result;
+    },
+
+    /**
      * Load win statistics by game
      */
     async loadWinStats() {
@@ -450,7 +505,19 @@ document.addEventListener('alpine:init', () => {
       const response = await api.getWinStats();
 
       if (response.success && response.data) {
-        this.winners = response.data.stats || [];
+        // The actual data is nested in response.data.data
+        const games = response.data.data || [];
+        // Transform to match the expected format for display
+        this.winners = games.map(game => ({
+          gameId: game.gameId,
+          gameName: game.gameName,
+          totalPlays: game.totalGames,
+          wins: {
+            andrew: game.andrew || 0,
+            trish: game.trish || 0,
+            draw: game.draw || 0
+          }
+        }));
         console.log('Loaded win stats:', this.winners);
       } else {
         this.winners = []; // Ensure always an array
@@ -469,7 +536,17 @@ document.addEventListener('alpine:init', () => {
       const response = await api.getTotalStats();
 
       if (response.success && response.data) {
-        this.totals = response.data.totals || [];
+        const statsData = response.data.data || {};
+        const totalGames = statsData.totalGames || 0;
+        const players = statsData.players || {};
+
+        // Transform player data into array format
+        this.totals = Object.entries(players).map(([player, wins]) => ({
+          player,
+          wins,
+          plays: totalGames,
+          winRate: totalGames > 0 ? wins / totalGames : 0
+        }));
         console.log('Loaded total stats:', this.totals);
       } else {
         this.totals = []; // Ensure always an array
@@ -477,7 +554,8 @@ document.addEventListener('alpine:init', () => {
       }
 
       Alpine.store('app').setLoading(false);
-    }
+    },
+
   });
 
   // ===== COMPONENT DEFINITIONS =====

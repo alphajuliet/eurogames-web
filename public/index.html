@@ -340,26 +340,7 @@
           <h2>Statistics</h2>
         </div>
 
-        <!-- Win Stats -->
-        <div class="stats-section" x-show="$store.stats.winners">
-          <h3>Win Statistics</h3>
-          <template x-for="stat in $store.stats.winners" key="stat.gameId">
-            <div class="stat-card">
-              <h4 x-text="stat.gameName"></h4>
-              <p>Total Plays: <strong x-text="stat.totalPlays"></strong></p>
-              <ul class="winners-list" x-show="stat.wins">
-                <template x-for="[player, wins] in Object.entries(stat.wins || {}).sort((a,b) => b[1] - a[1])">
-                  <li>
-                    <span x-text="player"></span>:
-                    <strong x-text="wins"></strong> wins
-                  </li>
-                </template>
-              </ul>
-            </div>
-          </template>
-        </div>
-
-        <!-- Total Stats -->
+        <!-- Overall Statistics -->
         <div class="stats-section" x-show="$store.stats.totals">
           <h3>Overall Statistics</h3>
           <table class="stats-table">
@@ -378,6 +359,53 @@
                   <td x-text="stat.wins"></td>
                   <td x-text="stat.plays"></td>
                   <td x-text="(stat.winRate * 100).toFixed(1) + '%'"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Game Statistics -->
+        <div class="stats-section" x-show="$store.stats.winners">
+          <h3>Game Statistics</h3>
+          <table class="stats-table">
+            <thead>
+              <tr>
+                <th @click="$store.stats.setGamesSortBy('gameName')" style="cursor: pointer;">
+                  Game Name
+                  <span x-show="$store.stats.gamesSortBy === 'gameName'" x-text="$store.stats.gamesSortDirection === 'asc' ? '▲' : '▼'"></span>
+                </th>
+                <th @click="$store.stats.setGamesSortBy('totalPlays')" style="cursor: pointer;">
+                  Total Plays
+                  <span x-show="$store.stats.gamesSortBy === 'totalPlays'" x-text="$store.stats.gamesSortDirection === 'asc' ? '▲' : '▼'"></span>
+                </th>
+                <th @click="$store.stats.setGamesSortBy('andrewWins')" style="cursor: pointer;">
+                  Andrew Wins
+                  <span x-show="$store.stats.gamesSortBy === 'andrewWins'" x-text="$store.stats.gamesSortDirection === 'asc' ? '▲' : '▼'"></span>
+                </th>
+                <th @click="$store.stats.setGamesSortBy('trishWins')" style="cursor: pointer;">
+                  Trish Wins
+                  <span x-show="$store.stats.gamesSortBy === 'trishWins'" x-text="$store.stats.gamesSortDirection === 'asc' ? '▲' : '▼'"></span>
+                </th>
+                <th @click="$store.stats.setGamesSortBy('draws')" style="cursor: pointer;">
+                  Draws
+                  <span x-show="$store.stats.gamesSortBy === 'draws'" x-text="$store.stats.gamesSortDirection === 'asc' ? '▲' : '▼'"></span>
+                </th>
+                <th @click="$store.stats.setGamesSortBy('andrewWinRate')" style="cursor: pointer;">
+                  Andrew's Win Rate
+                  <span x-show="$store.stats.gamesSortBy === 'andrewWinRate'" x-text="$store.stats.gamesSortDirection === 'asc' ? '▲' : '▼'"></span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="game in $store.stats.sortedGames" key="game.gameId">
+                <tr>
+                  <td x-text="game.gameName"></td>
+                  <td x-text="game.totalPlays"></td>
+                  <td x-text="game.wins.andrew"></td>
+                  <td x-text="game.wins.trish"></td>
+                  <td x-text="game.wins.draw"></td>
+                  <td x-text="(game.wins.andrew / game.totalPlays * 100).toFixed(1) + '%'"></td>
                 </tr>
               </template>
             </tbody>

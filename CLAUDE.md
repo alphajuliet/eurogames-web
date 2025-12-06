@@ -273,6 +273,59 @@ const result = await fetch('/v1/plays', {
 });
 ```
 
+### Frontend Architecture
+
+**Main Files:**
+- `public/index.html` - Single-page app with Alpine.js for state management
+- `public/js/app.js` - Alpine stores for Games, Plays, Last Played, and Statistics
+- `public/js/api.js` - Frontend API client wrapper
+- `public/css/styles.css` - Responsive styling
+
+**State Management (Alpine.js Stores):**
+- `games` - Game library management with filtering/sorting
+- `plays` - Play record CRUD with filtering/sorting
+- `lastPlayed` - Last played tracking with calculated elapsed days
+- `stats` - Statistics data with sorting capabilities
+
+### Frontend Pages
+
+#### Games Page
+- Lists all games with status, ranking, complexity, play count, and last played date
+- Search filter by name or status
+- Multi-column sorting (name, status, ranking, complexity, games, lastPlayed)
+- Features: Add game via BGG ID, update notes
+
+#### Plays Page
+- Records of all game plays with date, players, winner, scores, comments
+- Search filter by game name, winner, comment, or players
+- Multi-column sorting (date, game name, players, winner)
+- Features: Record new play, delete play record
+
+#### Last Played Page
+- Sorted list of games by time since last play
+- Shows game name, last played date, total times played, days elapsed
+- Multi-column sorting
+- Helps identify which games haven't been played recently
+
+#### Statistics Page
+- **Overall Statistics Table:** Shows player totals (Player, Wins, Total Games, Win Rate)
+  - Loads from `/v1/stats/totals` endpoint
+  - Data structure: `{data: {totalGames, players: {Andrew, Trish, Draw}}}`
+
+- **Game Statistics Table:** Detailed per-game statistics with 6 sortable columns:
+  - Game Name (alphabetical sort)
+  - Total Plays (numeric sort)
+  - Andrew Wins (numeric sort)
+  - Trish Wins (numeric sort)
+  - Draws (numeric sort)
+  - Andrew's Win Rate (percentage sort)
+
+  Loads from `/v1/stats/winners` endpoint
+  - Data structure: `{data: [{gameId, gameName, totalGames, andrew, trish, draw}, ...]}`
+  - Transformed in frontend to calculate win rates
+  - All columns are clickable to sort/reverse sort
+  - Visual indicators (▲ ▼) show current sort column and direction
+
 ## Key Configuration Files and Their Relationships
 
 1. **wrangler.jsonc** → Defines Worker configuration, entry point, assets
@@ -327,8 +380,11 @@ curl -X POST http://localhost:8787/v1/plays \
 
 ## Important Notes
 
-- **No Frontend Implementation:** This is an API gateway only. The frontend UI is not implemented.
-- **Minimal Dependencies:** Only itty-router is used (not Express). This keeps bundle size small.
+- **Frontend Architecture:** Single-page app using Alpine.js (lightweight, no build step required). See Frontend Pages section for details on Games, Plays, Last Played, and Statistics views.
+- **Data Transformation:** Frontend transforms API responses to match expected format:
+  - `/v1/stats/winners` response flattened from `{data: []}` with individual player fields to normalized `wins: {andrew, trish, draw}` object
+  - `/v1/stats/totals` response transformed from player counts to array format for table display
+- **Minimal Dependencies:** Backend uses only itty-router (not Express). Frontend uses Alpine.js only. Keeps bundle size small.
 - **Edge Computing:** Worker runs on Cloudflare's edge network globally, not on a central server.
 - **Stateless:** Worker has no persistent state; each request is independent.
 - **Version API:** All endpoints use `/v1/` prefix for API versioning.
