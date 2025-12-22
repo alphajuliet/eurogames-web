@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - Eurogames</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .login-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--background);
+    }
+
+    .login-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 2rem;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .login-box h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: var(--text-primary);
+    }
+
+    .login-form .form-field {
+      margin-bottom: 1rem;
+    }
+
+    .login-form label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+
+    .login-form input[type="password"] {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 0.375rem;
+      font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    .login-form input[type="password"]:focus {
+      outline: none;
+      border-color: var(--primary-color);
+    }
+
+    .login-form button {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 0.375rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .login-form button:hover {
+      background: var(--primary-hover);
+    }
+
+    .login-form button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .login-error {
+      background: #fee;
+      border: 1px solid var(--error);
+      border-radius: 0.375rem;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      color: var(--error);
+      font-size: 0.875rem;
+      display: none;
+    }
+
+    .login-error.visible {
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="login-container">
+    <div class="login-box">
+      <h1>Eurogames</h1>
+      <div id="error" class="login-error"></div>
+      <form class="login-form" id="loginForm">
+        <div class="form-field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required autofocus>
+        </div>
+        <button type="submit" id="submitBtn">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('loginForm');
+    const errorDiv = document.getElementById('error');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const password = document.getElementById('password').value;
+
+      errorDiv.classList.remove('visible');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Signing in...';
+
+      try {
+        const response = await fetch('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Redirect to the original page or home
+          const params = new URLSearchParams(window.location.search);
+          const redirect = params.get('redirect') || '/';
+          window.location.href = redirect;
+        } else {
+          errorDiv.textContent = data.error || 'Invalid password';
+          errorDiv.classList.add('visible');
+        }
+      } catch (err) {
+        errorDiv.textContent = 'An error occurred. Please try again.';
+        errorDiv.classList.add('visible');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign In';
+      }
+    });
+  </script>
+</body>
+
+</html>

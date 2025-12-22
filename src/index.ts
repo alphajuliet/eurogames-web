@@ -4,6 +4,84 @@ import { ApiClient } from './api';
 export interface Env {
 	EUROGAMES_API_URL?: string;
 	EUROGAMES_API_KEY?: string;
+	AUTH_PASSWORD?: string;
+	AUTH_SECRET?: string;
+	ASSETS?: Fetcher;
+}
+
+// Session duration: 30 days in seconds
+const SESSION_DURATION = 30 * 24 * 60 * 60;
+
+// HMAC-SHA256 signing for session tokens
+async function signToken(data: string, secret: string): Promise<string> {
+	const encoder = new TextEncoder();
+	const key = await crypto.subtle.importKey(
+		'raw',
+		encoder.encode(secret),
+		{ name: 'HMAC', hash: 'SHA-256' },
+		false,
+		['sign']
+	);
+	const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
+	return btoa(String.fromCharCode(...new Uint8Array(signature)));
+}
+
+async function verifyToken(data: string, signature: string, secret: string): Promise<boolean> {
+	const expectedSignature = await signToken(data, secret);
+	return signature === expectedSignature;
+}
+
+// Create a session token: expiry.signature
+async function createSessionToken(secret: string): Promise<string> {
+	const expiry = Math.floor(Date.now() / 1000) + SESSION_DURATION;
+	const signature = await signToken(String(expiry), secret);
+	return `${expiry}.${signature}`;
+}
+
+// Verify session token and check expiry
+async function verifySession(token: string, secret: string): Promise<boolean> {
+	const parts = token.split('.');
+	if (parts.length !== 2) return false;
+
+	const expiryStr = parts[0];
+	const signature = parts[1];
+	if (!expiryStr || !signature) return false;
+
+	const expiry = parseInt(expiryStr, 10);
+
+	if (isNaN(expiry) || expiry < Math.floor(Date.now() / 1000)) {
+		return false; // Expired
+	}
+
+	return verifyToken(expiryStr, signature, secret);
+}
+
+// Parse cookies from request
+function getCookie(request: Request, name: string): string | null {
+	const cookieHeader = request.headers.get('Cookie');
+	if (!cookieHeader) return null;
+
+	const cookies = cookieHeader.split(';').map(c => c.trim());
+	for (const cookie of cookies) {
+		const [cookieName, ...valueParts] = cookie.split('=');
+		if (cookieName === name) {
+			return valueParts.join('=');
+		}
+	}
+	return null;
+}
+
+// Check if request is authenticated
+async function isAuthenticated(request: Request, env: Env): Promise<boolean> {
+	if (!env.AUTH_PASSWORD || !env.AUTH_SECRET) {
+		// Auth not configured, allow access
+		return true;
+	}
+
+	const sessionToken = getCookie(request, 'session');
+	if (!sessionToken) return false;
+
+	return verifySession(sessionToken, env.AUTH_SECRET);
 }
 
 // Helper to create API client with environment configuration
@@ -53,6 +131,53 @@ router.options('*', () => {
 			'Access-Control-Allow-Origin': '*',
 			'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
 			'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+		},
+	});
+});
+
+// ==================== AUTHENTICATION ====================
+
+/**
+ * POST /auth/login - Authenticate with password
+ * Body: { password: string }
+ */
+router.post('/auth/login', async (request, env: Env) => {
+	try {
+		if (!env.AUTH_PASSWORD || !env.AUTH_SECRET) {
+			return jsonResponse({ success: false, error: 'Auth not configured' }, 500);
+		}
+
+		const body = await parseRequestBody(request);
+		const password = body.password as string | undefined;
+
+		if (!password || password !== env.AUTH_PASSWORD) {
+			return jsonResponse({ success: false, error: 'Invalid password' }, 401);
+		}
+
+		const sessionToken = await createSessionToken(env.AUTH_SECRET);
+
+		return new Response(JSON.stringify({ success: true }), {
+			status: 200,
+			headers: {
+				'Content-Type': 'application/json',
+				'Set-Cookie': `session=${sessionToken}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_DURATION}`,
+			},
+		});
+	} catch (error) {
+		console.error('Login error:', error);
+		return errorResponse('Login failed');
+	}
+});
+
+/**
+ * POST /auth/logout - Clear session
+ */
+router.post('/auth/logout', async () => {
+	return new Response(JSON.stringify({ success: true }), {
+		status: 200,
+		headers: {
+			'Content-Type': 'application/json',
+			'Set-Cookie': 'session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0',
 		},
 	});
 });
@@ -458,14 +583,64 @@ router.all('*', () => {
 	return errorResponse('Not Found', 404);
 });
 
+// Paths that don't require authentication
+function isPublicPath(pathname: string): boolean {
+	// Allow login page (with or without .html extension)
+	if (pathname === '/login' || pathname === '/login.html') return true;
+	// Allow auth endpoints
+	if (pathname.startsWith('/auth/')) return true;
+	// Allow static assets needed for login
+	if (pathname === '/favicon.svg') return true;
+	if (pathname.startsWith('/css/')) return true;
+	return false;
+}
+
 /**
  * Fetch handler - serves static assets and routes API requests
  */
 export default {
-	async fetch(request: Request, env: Env, _ctx: ExecutionContext): Promise<Response> {
+	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
 		try {
-			const response = await router.handle(request, env);
-			return response || errorResponse('Not Found', 404);
+			const url = new URL(request.url);
+			const pathname = url.pathname;
+
+			// Check if auth is configured
+			const authEnabled = env.AUTH_PASSWORD && env.AUTH_SECRET;
+
+			// For non-public paths, check authentication
+			if (authEnabled && !isPublicPath(pathname)) {
+				const authenticated = await isAuthenticated(request, env);
+
+				if (!authenticated) {
+					// For API requests, return 401
+					if (pathname.startsWith('/v1/') || pathname.startsWith('/auth/')) {
+						return jsonResponse({ success: false, error: 'Unauthorized' }, 401);
+					}
+					// For page requests, redirect to login
+					const redirectUrl = encodeURIComponent(pathname + url.search);
+					return Response.redirect(`${url.origin}/login?redirect=${redirectUrl}`, 302);
+				}
+			}
+
+			// Try to handle API routes first
+			const routerResponse = await router.handle(request, env);
+
+			// If router returned a 404, try serving static assets
+			if (routerResponse && routerResponse.status === 404 && env.ASSETS) {
+				return env.ASSETS.fetch(request);
+			}
+
+			// If we have a valid router response, return it
+			if (routerResponse) {
+				return routerResponse;
+			}
+
+			// Fall back to static assets
+			if (env.ASSETS) {
+				return env.ASSETS.fetch(request);
+			}
+
+			return errorResponse('Not Found', 404);
 		} catch (error) {
 			console.error('Worker error:', error);
 			return errorResponse('Internal Server Error');

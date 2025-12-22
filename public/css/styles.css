@@ -48,11 +48,35 @@ body {
   box-shadow: var(--shadow);
 }
 
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
 .app-header h1 {
   font-size: 1.875rem;
   font-weight: 700;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
   color: var(--text-primary);
+}
+
+.btn-logout {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.btn-logout:hover {
+  background: var(--error);
+  color: white;
+  border-color: var(--error);
 }
 
 .main-nav {
