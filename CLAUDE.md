@@ -20,6 +20,7 @@ The project follows a **layered proxy pattern**:
 Frontend/Client
     ↓
 Cloudflare Worker (src/index.ts)
+    ├── Session Authentication (HMAC-SHA256 signed tokens)
     ├── Router (itty-router) + Request Handling
     ├── CORS Middleware
     └── 30+ REST Endpoints
@@ -42,14 +43,16 @@ Backend Eurogames API
 ## Core Files
 
 ### `/src/index.ts` - Main Worker Entry Point
-- **Responsibility:** HTTP routing and request/response handling
+- **Responsibility:** HTTP routing, authentication, and request/response handling
 - **Contains:**
-  - Route definitions organized into 4 sections: Games, Plays, Statistics, Utilities
+  - Session authentication with HMAC-SHA256 signed tokens (30-day duration)
+  - Route definitions organized into 5 sections: Authentication, Games, Plays, Statistics, Utilities
   - Helper functions: `createApiClient()`, `parseRequestBody()`, `jsonResponse()`, `errorResponse()`
+  - Authentication helpers: `signToken()`, `verifyToken()`, `createSessionToken()`, `verifySession()`, `isAuthenticated()`
   - CORS middleware for OPTIONS requests
-  - Main `fetch()` handler
+  - Main `fetch()` handler with auth checks
 - **Endpoints:** 30+ REST endpoints following `/v1/{resource}/{action}` pattern
-- **Key Pattern:** Each endpoint follows: parse request → create API client → call method → return response
+- **Key Pattern:** Each endpoint follows: check auth → parse request → create API client → call method → return response
 
 ### `/src/api.ts` - Typed API Client
 - **Responsibility:** HTTP communication with backend API
@@ -82,7 +85,9 @@ Backend Eurogames API
 ### `.env.example` - Configuration Template
 - **Variables:**
   - `EUROGAMES_API_URL` - Backend API address
-  - `EUROGAMES_API_KEY` - Authorization Bearer token
+  - `EUROGAMES_API_KEY` - Authorization Bearer token for backend API
+  - `AUTH_PASSWORD` - Site password for user authentication (optional)
+  - `AUTH_SECRET` - HMAC secret for signing session tokens (optional)
 
 ### `.dev.vars` - Local Development Environment
 - **Purpose:** Contains actual environment variables for local development
@@ -125,8 +130,9 @@ npx tsc --noEmit
 # Set API key for production
 wrangler secret put EUROGAMES_API_KEY --env production
 
-# Set bearer token
-wrangler secret put BEARER_TOKEN --env production
+# Set site authentication (optional - if not set, site is public)
+wrangler secret put AUTH_PASSWORD --env production
+wrangler secret put AUTH_SECRET --env production
 ```
 
 ## Adding New API Endpoints
@@ -161,7 +167,11 @@ wrangler secret put BEARER_TOKEN --env production
 
 ## Endpoint Organization
 
-Endpoints are grouped into 4 main sections (see comments in index.ts):
+Endpoints are grouped into 5 main sections (see comments in index.ts):
+
+### Authentication (`/auth/*`)
+- `POST /auth/login` - Authenticate with password, returns session cookie
+- `POST /auth/logout` - Clear session cookie
 
 ### Games (`/v1/games/*`)
 - `GET /v1/games` - List all games
@@ -209,12 +219,22 @@ Endpoints are grouped into 4 main sections (see comments in index.ts):
 
 ## Authentication
 
-The worker uses Bearer token authentication via the `EUROGAMES_API_KEY` environment variable:
+### Site Authentication (User Access)
+The worker supports optional password-based authentication for site access:
+
+- **Session Tokens:** HMAC-SHA256 signed tokens with 30-day expiration
+- **Configuration:** Set `AUTH_PASSWORD` and `AUTH_SECRET` environment variables
+- **Public Paths:** Login page, auth endpoints, favicon, and CSS are always accessible
+- **Behavior:** If auth vars not set, site is publicly accessible
+- **Flow:** Login → Set HttpOnly cookie → Verify on each request → Redirect to login if expired
+
+### Backend API Authentication
+The worker uses Bearer token authentication for backend API calls:
 
 - **Bearer Token:** Via `EUROGAMES_API_KEY` environment variable
   - Sent as `Authorization: Bearer {token}` header to backend
 
-Authentication is automatically applied to all requests via `createApiClient(env)`.
+Authentication is automatically applied to all backend requests via `createApiClient(env)`.
 
 ## CORS Configuration
 
@@ -231,6 +251,8 @@ Modify `src/index.ts` router.options() handler to restrict if needed.
 ```
 EUROGAMES_API_URL=https://eurogames.web-c10.workers.dev
 EUROGAMES_API_KEY=your_bearer_token_here
+AUTH_PASSWORD=your_site_password
+AUTH_SECRET=your_hmac_secret_key
 ```
 
 **Production (via Wrangler Secrets):**
@@ -238,20 +260,27 @@ EUROGAMES_API_KEY=your_bearer_token_here
 # Set the bearer token as a secret
 wrangler secret put EUROGAMES_API_KEY
 
+# Set site authentication (optional)
+wrangler secret put AUTH_PASSWORD
+wrangler secret put AUTH_SECRET
+
 # For specific environment
 wrangler secret put EUROGAMES_API_KEY --env production
+wrangler secret put AUTH_PASSWORD --env production
+wrangler secret put AUTH_SECRET --env production
 ```
 
 Note:
 - `.dev.vars` is used for local development with `wrangler dev`
 - Production secrets are set via `wrangler secret put` command
 - The `EUROGAMES_API_URL` can be configured in `wrangler.jsonc` under `vars` if different from default
+- `AUTH_PASSWORD` and `AUTH_SECRET` are optional; if not set, site is publicly accessible
 
 ## Frontend Integration
 
-The frontend is a minimal HTML shell (`public/index.html`):
-- Includes HTMX.org 2.0.8 for dynamic content loading
-- No backend-dependent framework
+The frontend is a single-page application:
+- `public/index.html` - Main app with Alpine.js 3.14.3 for reactive state management
+- `public/login.html` - Login page for password authentication
 - Static assets served by the Worker
 
 To call API endpoints from frontend:
@@ -277,6 +306,7 @@ const result = await fetch('/v1/plays', {
 
 **Main Files:**
 - `public/index.html` - Single-page app with Alpine.js for state management
+- `public/login.html` - Login page for password authentication
 - `public/js/app.js` - Alpine stores for Games, Plays, Last Played, and Statistics
 - `public/js/api.js` - Frontend API client wrapper
 - `public/css/styles.css` - Responsive styling
@@ -373,13 +403,15 @@ curl -X POST http://localhost:8787/v1/plays \
    - Endpoints: `/v1/{resource}/{action}` (REST style)
    - Methods: verb-noun format (`addGame()`, `recordPlay()`, `getWinStats()`)
 4. **Request Validation:** Check for required fields before processing, return 400 for bad requests.
-5. **Authentication:** Always respect EUROGAMES_API_KEY and BEARER_TOKEN from environment.
-6. **No Secrets in Code:** Never commit API keys or tokens; use Wrangler secrets.
-7. **CORS Headers:** Responses automatically include CORS headers via `jsonResponse()`.
-8. **Response Consistency:** All responses should use `jsonResponse()` helper.
+5. **Authentication:** Respect environment variables for both site auth (AUTH_PASSWORD, AUTH_SECRET) and backend API auth (EUROGAMES_API_KEY).
+6. **Public Paths:** When adding new public routes (no auth required), update `isPublicPath()` in index.ts.
+7. **No Secrets in Code:** Never commit API keys or tokens; use Wrangler secrets.
+8. **CORS Headers:** Responses automatically include CORS headers via `jsonResponse()`.
+9. **Response Consistency:** All responses should use `jsonResponse()` helper.
 
 ## Important Notes
 
+- **Site Authentication:** Optional password-based auth with HMAC-SHA256 signed session tokens. If `AUTH_PASSWORD` and `AUTH_SECRET` are not set, the site is publicly accessible.
 - **Frontend Architecture:** Single-page app using Alpine.js (lightweight, no build step required). See Frontend Pages section for details on Games, Plays, Last Played, and Statistics views.
 - **Data Transformation:** Frontend transforms API responses to match expected format:
   - `/v1/stats/winners` response flattened from `{data: []}` with individual player fields to normalized `wins: {andrew, trish, draw}` object

@@ -12,10 +12,17 @@ A modern, reactive web application for managing board game collections and track
 - Direct links to BoardGameGeek
 
 ### Play History Tracking
-- View last 50 game plays
+- View all game plays
 - Search/filter plays by game name, winner, or comment
 - Display play details: date, game, winner, scores, comments
+- Record new plays directly from the UI
 - Delete play records with confirmation
+
+### Password Authentication
+- Simple password-based authentication
+- Secure session tokens with HMAC-SHA256 signing
+- 30-day session duration
+- Login page with redirect support
 
 ### Statistics
 - Win statistics by game with player breakdown
@@ -41,6 +48,8 @@ A modern, reactive web application for managing board game collections and track
 eurogames-web/
 ├── public/                    # Frontend assets
 │   ├── index.html            # Main HTML with Alpine.js templates
+│   ├── login.html            # Login page for authentication
+│   ├── favicon.svg           # Pretzel favicon
 │   ├── css/
 │   │   └── styles.css        # Complete styling system
 │   └── js/
@@ -76,7 +85,11 @@ Edit `.dev.vars` with your credentials:
 ```
 EUROGAMES_API_URL=https://eurogames.web-c10.workers.dev
 EUROGAMES_API_KEY=your_bearer_token_here
+AUTH_PASSWORD=your_site_password
+AUTH_SECRET=your_hmac_secret_key
 ```
+
+**Note:** `AUTH_PASSWORD` and `AUTH_SECRET` are optional. If not set, the site is publicly accessible.
 
 ### 3. Start Development Server
 
@@ -93,6 +106,13 @@ The application will be available at `http://localhost:8787`
 ## API Endpoints
 
 All endpoints are prefixed with `/v1`. The worker acts as a proxy, transforming backend responses to match frontend expectations.
+
+### Authentication
+
+```
+POST   /auth/login            # Authenticate with password (body: {password: string})
+POST   /auth/logout           # Clear session cookie
+```
 
 ### Games Management
 
@@ -136,6 +156,11 @@ POST   /v1/query              # Execute custom SELECT query (body: {sql: string}
 
 ## Using the Application
 
+### Authentication
+
+1. **Login** - Enter the site password on the login page
+2. **Sign Out** - Click "Sign Out" button in the header
+
 ### Games View
 
 1. **Browse Games** - Automatically loads on page load
@@ -146,15 +171,22 @@ POST   /v1/query              # Execute custom SELECT query (body: {sql: string}
 
 ### Plays View
 
-1. **View History** - See last 50 plays automatically
+1. **View History** - See all plays automatically
 2. **Search** - Filter plays by game name, winner, or comment
-3. **Delete Plays** - Click 🗑️ button (with confirmation)
+3. **Add New Play** - Use the form to record a new game play (date, game, winner, scores, comments)
+4. **Delete Plays** - Click 🗑️ button (with confirmation)
+
+### Last Played View
+
+1. **Browse** - See all games sorted by time since last played
+2. **Sort** - Click column headers to sort (game name, times played, last played date, days since)
 
 ### Statistics View
 
 1. **Load Stats** - Click "Load Statistics" button
 2. **Win Stats** - View win counts by game and player
 3. **Overall Stats** - See total wins, plays, and win rates per player
+4. **Sort** - Click column headers to sort statistics tables
 
 ## Frontend Architecture
 
@@ -253,6 +285,8 @@ Create `.dev.vars` for local development:
 ```
 EUROGAMES_API_URL=https://eurogames.web-c10.workers.dev
 EUROGAMES_API_KEY=your_bearer_token_here
+AUTH_PASSWORD=your_site_password
+AUTH_SECRET=your_hmac_secret_key
 ```
 
 ### Environment Variables (Production)
@@ -263,9 +297,17 @@ Set secrets via Wrangler CLI:
 # Set API key
 wrangler secret put EUROGAMES_API_KEY
 
+# Set authentication secrets
+wrangler secret put AUTH_PASSWORD
+wrangler secret put AUTH_SECRET
+
 # For specific environment
 wrangler secret put EUROGAMES_API_KEY --env production
+wrangler secret put AUTH_PASSWORD --env production
+wrangler secret put AUTH_SECRET --env production
 ```
+
+**Note:** If `AUTH_PASSWORD` and `AUTH_SECRET` are not set, authentication is disabled and the site is publicly accessible.
 
 ### Worker Configuration
 
@@ -378,26 +420,29 @@ npx tsc --noEmit
 - [Wrangler CLI Documentation](https://developers.cloudflare.com/workers/wrangler/)
 - [itty-router Documentation](https://itty-router.dev/)
 
-## Implementation Details
+## Additional Documentation
 
-See additional documentation:
 - [CLAUDE.md](./CLAUDE.md) - Project instructions for AI assistance
-- [IMPLEMENTATION_COMPLETE.md](./IMPLEMENTATION_COMPLETE.md) - Phase 1 completion summary
-- [ALPINE_IMPLEMENTATION.md](./ALPINE_IMPLEMENTATION.md) - Original implementation plan
+- [AGENTS.md](./AGENTS.md) - Workflow and issue tracking with beads
 
 ## Known Limitations
 
-1. **Response Schema Mismatch**: Backend uses different schema than originally expected; each endpoint needs transformation logic
-2. **No Backend Pagination**: Currently loads all games/plays at once
-3. **No Client Caching**: Every view switch refetches data
-4. **Type Safety**: Frontend uses JSDoc (loose typing) vs backend's strict TypeScript
-5. **Error Messages**: Generic HTTP error codes; backend doesn't return detailed error messages
+1. **No Backend Pagination**: Currently loads all games/plays at once
+2. **No Client Caching**: Every view switch refetches data
+3. **Type Safety**: Frontend uses JSDoc (loose typing) vs backend's strict TypeScript
+4. **Error Messages**: Generic HTTP error codes; backend doesn't return detailed error messages
 
 ## Troubleshooting
+
+### Issue: Redirected to Login Page Unexpectedly
+- **Check**: Session may have expired (30-day duration)
+- **Fix**: Log in again with the site password
+- **Note**: Clear cookies if you're seeing stale sessions
 
 ### Issue: 401 Errors in Console
 - **Check**: `.dev.vars` file exists with correct API key
 - **Check**: Dev server was restarted after creating `.dev.vars`
+- **Check**: `AUTH_PASSWORD` and `AUTH_SECRET` are set if authentication is intended
 - **Fix**: Restart with `npm run dev`
 
 ### Issue: Games/Plays Not Loading
