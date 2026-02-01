@@ -83,11 +83,9 @@
                    class="search-input">
             <select x-model="$store.games.statusFilter" class="status-filter">
               <option value="">All Statuses</option>
-              <option value="Playing">Playing</option>
-              <option value="Inbox">Inbox</option>
-              <option value="Evaluating">Evaluating</option>
-              <option value="Owned">Owned</option>
-              <option value="Wishlist">Wishlist</option>
+              <template x-for="status in $store.games.uniqueStatuses" :key="status">
+                <option :value="status" x-text="status"></option>
+              </template>
             </select>
           </div>
         </div>

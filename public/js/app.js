@@ -152,6 +152,20 @@ document.addEventListener('alpine:init', () => {
     },
 
     /**
+     * Get unique status values from the games list, sorted alphabetically
+     * @returns {string[]}
+     */
+    get uniqueStatuses() {
+      const statuses = new Set();
+      for (const game of this.list) {
+        if (game.status) {
+          statuses.add(game.status);
+        }
+      }
+      return [...statuses].sort();
+    },
+
+    /**
      * Get filtered and sorted games
      * @returns {Game[]}
      */
