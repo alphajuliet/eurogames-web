@@ -111,6 +111,7 @@
                   <span x-show="$store.games.sortDirection === 'desc'">↓</span>
                 </span>
               </th>
+              <th>Game ID</th>
               <th @click="$store.games.setSortBy('ranking')" class="sortable">
                 BGG Rank
                 <span class="sort-indicator" x-show="$store.games.sortBy === 'ranking'">
@@ -149,6 +150,7 @@
                 <td>
                   <span class="status-badge" x-text="game.status || 'Unknown'"></span>
                 </td>
+                <td x-text="game.id"></td>
                 <td x-text="game.ranking || 'N/A'"></td>
                 <td x-text="game.complexity ? game.complexity.toFixed(2) : 'N/A'"></td>
                 <td x-text="game.games || 0"></td>
