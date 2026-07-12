@@ -16,6 +16,7 @@
   --border: #e2e8f0;
   --error: #dc2626;
   --success: #16a34a;
+  --pink: #db2777;
   --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
 }
@@ -401,12 +402,24 @@ body {
 .plays-table .winner-badge {
   display: inline-block;
   padding: 0.25rem 0.5rem;
-  background: var(--success);
+  background: var(--secondary-color);
   color: white;
   border-radius: 0.25rem;
   font-size: 0.75rem;
   font-weight: 500;
   white-space: nowrap;
+}
+
+.plays-table .winner-badge.winner-andrew {
+  background: var(--primary-color);
+}
+
+.plays-table .winner-badge.winner-trish {
+  background: var(--pink);
+}
+
+.plays-table .winner-badge.winner-draw {
+  background: var(--success);
 }
 
 .plays-table .text-muted {

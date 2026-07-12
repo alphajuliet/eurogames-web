@@ -265,8 +265,13 @@
                 <td x-text="play.date"></td>
                 <td class="game-name" x-text="play.name"></td>
                 <td>
-                  <span class="winner-badge" x-show="play.winner" x-text="play.winner"></span>
-                  <span x-show="!play.winner" class="text-muted">-</span>
+                  <span class="winner-badge"
+                        :class="{
+                          'winner-andrew': play.winner === 'Andrew',
+                          'winner-trish': play.winner === 'Trish',
+                          'winner-draw': !play.winner || play.winner === 'Draw'
+                        }"
+                        x-text="play.winner || 'Draw'"></span>
                 </td>
                 <td x-text="play.scores"></td>
                 <td class="play-notes" x-text="play.comment || '-'"></td>
