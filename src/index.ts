@@ -121,6 +121,32 @@ function errorResponse(message: string, status = 500): Response {
 	return jsonResponse({ error: message }, status);
 }
 
+// Keywords that must never appear in a query accepted by /v1/query, since
+// this endpoint is only meant to allow read-only SELECT statements.
+const FORBIDDEN_SQL_KEYWORDS = [
+	'INSERT', 'UPDATE', 'DELETE', 'DROP', 'ALTER', 'CREATE', 'REPLACE',
+	'TRUNCATE', 'ATTACH', 'DETACH', 'PRAGMA', 'VACUUM', 'REINDEX', 'GRANT', 'REVOKE',
+];
+
+// Validate that a query is a single, read-only SELECT statement.
+function isSafeSelectQuery(sql: string): boolean {
+	// Strip a single trailing semicolon before checking for stacked statements.
+	const trimmed = sql.trim().replace(/;\s*$/, '');
+
+	if (!trimmed) return false;
+	// Reject stacked statements (a semicolon anywhere left after trimming the trailing one).
+	if (trimmed.includes(';')) return false;
+	// Must start with SELECT.
+	if (!/^SELECT\s/i.test(trimmed)) return false;
+	// Block writes/DDL/pragmas even if smuggled inside a SELECT (e.g. via a subquery syntax error path).
+	const upper = trimmed.toUpperCase();
+	for (const keyword of FORBIDDEN_SQL_KEYWORDS) {
+		if (new RegExp(`\\b${keyword}\\b`).test(upper)) return false;
+	}
+
+	return true;
+}
+
 // Create router
 const router = Router();
 
@@ -564,6 +590,10 @@ router.post('/v1/query', async (request, env: Env) => {
 
 		if (!sql) {
 			return errorResponse('Missing sql field', 400);
+		}
+
+		if (!isSafeSelectQuery(sql)) {
+			return errorResponse('Only single, read-only SELECT statements are allowed', 400);
 		}
 
 		const client = createApiClient(env);
