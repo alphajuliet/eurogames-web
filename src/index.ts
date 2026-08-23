@@ -217,7 +217,7 @@ router.post('/auth/logout', async () => {
 router.get('/v1/games', async (_request, env: Env) => {
 	try {
 		const client = createApiClient(env);
-		const result = await client.listGames();
+		const result = await client.listGames({ limit: '500' });
 
 		// Transform backend response to expected format
 		if (result.success && result.data) {
@@ -227,7 +227,7 @@ router.get('/v1/games', async (_request, env: Env) => {
 				status: result.status,
 				data: {
 					games: backendData.data || [],
-					total: backendData.data?.length || 0
+					total: backendData.meta?.total ?? backendData.data?.length ?? 0
 				}
 			};
 			return jsonResponse(transformedResult);
