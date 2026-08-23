@@ -340,19 +340,21 @@ const result = await fetch('/v1/plays', {
 #### Statistics Page
 - **Overall Statistics Table:** Shows player totals (Player, Wins, Total Games, Win Rate)
   - Loads from `/v1/stats/totals` endpoint
-  - Data structure: `{data: {totalGames, players: {Andrew, Trish, Draw}}}`
+  - Data structure: `{data: {totalGames, players: {Andrew, Trish, Draw, Game}}}`
 
-- **Game Statistics Table:** Detailed per-game statistics with 6 sortable columns:
+- **Game Statistics Table:** Detailed per-game statistics with 7 sortable columns:
   - Game Name (alphabetical sort)
   - Total Plays (numeric sort)
   - Andrew Wins (numeric sort)
   - Trish Wins (numeric sort)
   - Draws (numeric sort)
+  - Game Wins (numeric sort) — cooperative losses, where the game beat both players
   - Win Percentages (percentage sort, shown as "Andrew% : Trish%")
 
   Loads from `/v1/stats/winners` endpoint
-  - Data structure: `{data: [{gameId, gameName, totalGames, andrew, trish, draw}, ...]}`
+  - Data structure: `{data: [{gameId, gameName, totalGames, andrew, trish, draw, game}, ...]}`
   - Transformed in frontend to calculate win rates
+  - A play recorded with winner `"Andrew & Trish"` (cooperative joint win) counts toward both `andrew` and `trish`, so those two columns can sum to more than `totalPlays` for games with joint wins — this is expected
   - All columns are clickable to sort/reverse sort
   - Visual indicators (▲ ▼) show current sort column and direction
 
@@ -414,7 +416,7 @@ curl -X POST http://localhost:8787/v1/plays \
 - **Site Authentication:** Optional password-based auth with HMAC-SHA256 signed session tokens. If `AUTH_PASSWORD` and `AUTH_SECRET` are not set, the site is publicly accessible.
 - **Frontend Architecture:** Single-page app using Alpine.js (lightweight, no build step required). See Frontend Pages section for details on Games, Plays, Last Played, and Statistics views.
 - **Data Transformation:** Frontend transforms API responses to match expected format:
-  - `/v1/stats/winners` response flattened from `{data: []}` with individual player fields to normalized `wins: {andrew, trish, draw}` object
+  - `/v1/stats/winners` response flattened from `{data: []}` with individual player fields to normalized `wins: {andrew, trish, draw, game}` object
   - `/v1/stats/totals` response transformed from player counts to array format for table display
 - **Minimal Dependencies:** Backend uses only itty-router (not Express). Frontend uses Alpine.js only. Keeps bundle size small.
 - **Edge Computing:** Worker runs on Cloudflare's edge network globally, not on a central server.

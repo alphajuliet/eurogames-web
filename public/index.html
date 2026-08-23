@@ -215,6 +215,8 @@
                   <option value="">Select winner...</option>
                   <option value="Andrew">Andrew</option>
                   <option value="Trish">Trish</option>
+                  <option value="Andrew & Trish">Andrew & Trish</option>
+                  <option value="Game">Game</option>
                   <option value="Draw">Draw</option>
                 </select>
               </div>
@@ -271,6 +273,8 @@
                         :class="{
                           'winner-andrew': play.winner === 'Andrew',
                           'winner-trish': play.winner === 'Trish',
+                          'winner-andrew-trish': play.winner === 'Andrew & Trish',
+                          'winner-game': play.winner === 'Game',
                           'winner-draw': !play.winner || play.winner === 'Draw'
                         }"
                         x-text="play.winner || 'Draw'"></span>
@@ -405,6 +409,10 @@
                   Draws
                   <span x-show="$store.stats.gamesSortBy === 'draws'" x-text="$store.stats.gamesSortDirection === 'asc' ? '▲' : '▼'"></span>
                 </th>
+                <th @click="$store.stats.setGamesSortBy('gameWins')" style="cursor: pointer;">
+                  Game Wins
+                  <span x-show="$store.stats.gamesSortBy === 'gameWins'" x-text="$store.stats.gamesSortDirection === 'asc' ? '▲' : '▼'"></span>
+                </th>
                 <th @click="$store.stats.setGamesSortBy('andrewWinRate')" style="cursor: pointer;">
                   Win Percentages
                   <span x-show="$store.stats.gamesSortBy === 'andrewWinRate'" x-text="$store.stats.gamesSortDirection === 'asc' ? '▲' : '▼'"></span>
@@ -419,6 +427,7 @@
                   <td x-text="game.wins.andrew"></td>
                   <td x-text="game.wins.trish"></td>
                   <td x-text="game.wins.draw"></td>
+                  <td x-text="game.wins.game"></td>
                   <td x-text="(game.wins.andrew / game.totalPlays * 100).toFixed(0) + '% : ' + (game.wins.trish / game.totalPlays * 100).toFixed(0) + '%'"></td>
                 </tr>
               </template>

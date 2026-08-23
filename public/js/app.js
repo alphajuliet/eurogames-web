@@ -497,6 +497,8 @@ document.addEventListener('alpine:init', () => {
           compareResult = a.wins.trish - b.wins.trish;
         } else if (this.gamesSortBy === 'draws') {
           compareResult = a.wins.draw - b.wins.draw;
+        } else if (this.gamesSortBy === 'gameWins') {
+          compareResult = a.wins.game - b.wins.game;
         } else if (this.gamesSortBy === 'andrewWinRate') {
           const rateA = a.wins.andrew / a.totalPlays;
           const rateB = b.wins.andrew / b.totalPlays;
@@ -529,7 +531,8 @@ document.addEventListener('alpine:init', () => {
           wins: {
             andrew: game.andrew || 0,
             trish: game.trish || 0,
-            draw: game.draw || 0
+            draw: game.draw || 0,
+            game: game.game || 0
           }
         }));
         console.log('Loaded win stats:', this.winners);
@@ -646,7 +649,7 @@ document.addEventListener('alpine:init', () => {
       const playData = {
         game_id: parseInt(this.gameId),
         date: this.date,
-        winner: this.winner === 'Draw' ? undefined : this.winner,
+        winner: this.winner,
         scores: this.scores || undefined,
         comment: this.notes || undefined
       };
