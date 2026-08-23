@@ -199,7 +199,7 @@
                 <label for="play-game">Game</label>
                 <select id="play-game"
                         x-model="gameId"
-                        size="8"
+                        :size="$store.games.list.filter(g => g.status === 'Playing').length + 1"
                         required>
                   <option value="">Select game...</option>
                   <template x-for="game in $store.games.list.filter(g => g.status === 'Playing')" key="game.id">
