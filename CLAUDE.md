@@ -348,7 +348,7 @@ const result = await fetch('/v1/plays', {
   - Andrew Wins (numeric sort)
   - Trish Wins (numeric sort)
   - Draws (numeric sort)
-  - Andrew's Win Rate (percentage sort)
+  - Win Percentages (percentage sort, shown as "Andrew% : Trish%")
 
   Loads from `/v1/stats/winners` endpoint
   - Data structure: `{data: [{gameId, gameName, totalGames, andrew, trish, draw}, ...]}`
