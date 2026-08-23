@@ -11,6 +11,10 @@ daemon.log
 daemon.pid
 bd.sock
 
+# Embedded Dolt engine local state (not shared via git; issues.jsonl is the source of truth)
+embeddeddolt/
+backup/
+
 # Local version tracking (prevents upgrade notification spam after git ops)
 .local_version
 
