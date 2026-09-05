@@ -8,116 +8,48 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Project:** Eurogames Web Worker
-**Type:** Cloudflare Worker (serverless edge computing)
-**Purpose:** Acts as an API gateway/proxy between a frontend application and the Eurogames backend API, providing typed REST endpoints for games management, play recording, and statistics retrieval.
+**Project:** Eurogames Web
+**Type:** Cloudflare Worker (TypeScript), serving a static frontend and proxying to a backend API
+**Purpose:** API gateway between a frontend single-page app and the Eurogames backend API, providing REST endpoints for games management, play recording, and statistics retrieval.
 
-## Architecture
+**Requirements and architecture live in [`docs/SPEC.md`](docs/SPEC.md).** That document is intentionally implementation-agnostic (three-tier model: presentation / application / data). This file is the companion for actually working in *this* codebase — concrete files, commands, and code conventions. When the two disagree on behavior, `docs/SPEC.md` is the source of truth for what the system *should* do; this file describes what the code *currently* does and how to change it.
 
-The project follows a **layered proxy pattern**:
+## How the Spec Maps to This Codebase
 
-```
-Frontend/Client
-    ↓
-Cloudflare Worker (src/index.ts)
-    ├── Session Authentication (HMAC-SHA256 signed tokens)
-    ├── Router (itty-router) + Request Handling
-    ├── CORS Middleware
-    └── 30+ REST Endpoints
-         ↓
-API Client (src/api.ts)
-    └── Type-safe HTTP Communication
-         ↓
-Backend Eurogames API
-    (https://eurogames.web-c10.workers.dev)
-```
-
-### Key Design Patterns
-
-- **Stateless Proxy:** Worker acts as a transparent gateway with authentication management
-- **Type Safety:** Full TypeScript with strict checking throughout
-- **Modular Separation:** Clear boundaries between routing (index.ts), API communication (api.ts), and types (types.ts)
-- **Layered Error Handling:** Try-catch blocks with consistent error response format
-- **Environment Configuration:** Supports different configs per deployment stage via Wrangler
+| SPEC.md tier | Implementation here |
+|---|---|
+| Presentation | `public/` — Alpine.js 3.14.3 single-page app, no build step |
+| Application | `src/index.ts` (routing, auth, request/response shaping) + `src/api.ts` (backend HTTP client) + `src/types.ts` (shared types), deployed as a Cloudflare Worker |
+| Data | External Eurogames backend API at `EUROGAMES_API_URL` — owned outside this repo |
 
 ## Core Files
 
-### `/src/index.ts` - Main Worker Entry Point
-- **Responsibility:** HTTP routing, authentication, and request/response handling
-- **Contains:**
-  - Session authentication with HMAC-SHA256 signed tokens (30-day duration)
-  - Route definitions organized into 5 sections: Authentication, Games, Plays, Statistics, Utilities
-  - Helper functions: `createApiClient()`, `parseRequestBody()`, `jsonResponse()`, `errorResponse()`
-  - Authentication helpers: `signToken()`, `verifyToken()`, `createSessionToken()`, `verifySession()`, `isAuthenticated()`
-  - CORS middleware for OPTIONS requests
-  - Main `fetch()` handler with auth checks
-- **Endpoints:** 30+ REST endpoints following `/v1/{resource}/{action}` pattern
-- **Key Pattern:** Each endpoint follows: check auth → parse request → create API client → call method → return response
+### `/src/index.ts` — Worker Entry Point
+- HTTP routing (itty-router) and the `fetch()` handler
+- Session authentication: `signToken()`, `verifyToken()`, `createSessionToken()`, `verifySession()`, `isAuthenticated()`, `isPublicPath()`
+- Shared helpers: `createApiClient()`, `parseRequestBody()`, `jsonResponse()`, `errorResponse()`
+- SQL safety guard for `/v1/query`: `isSafeSelectQuery()`
+- Routes are grouped into 5 commented sections: Authentication, Games, Plays, Statistics, Utilities — mirroring `docs/SPEC.md` §3
 
-### `/src/api.ts` - Typed API Client
-- **Responsibility:** HTTP communication with backend API
-- **Contains:**
-  - `ApiClient` class with 20+ high-level methods
-  - HTTP method wrappers: `get()`, `post()`, `put()`, `delete()`, `patch()`
-  - Core `request()` method handling fetch, timeouts, error wrapping
-  - Authentication support: API keys or bearer tokens
-- **Methods Organized By:** Games operations, Play operations, Statistics queries, Utilities
-- **Response Pattern:** All methods return `ApiResponse<T>` wrapper with `{ success, data, error, status }`
+### `/src/api.ts` — Typed Backend Client
+- `ApiClient` class; one method per backend operation (`listGames()`, `recordPlay()`, `getWinStats()`, etc.)
+- Generic HTTP verbs (`get`, `post`, `put`, `patch`, `delete`) funnel through a private `request()` that handles timeout, JSON parsing, and error wrapping
+- Every method returns `ApiResponse<T>` = `{ success, data, error, status }`
 
-### `/src/types.ts` - Type Definitions
-- **Responsibility:** TypeScript interfaces for type safety
-- **Contains:** Data models (Game, PlayRecord), response types (GamesListResponse, etc.), statistics types, utility types
-- **Usage:** Imported by api.ts and index.ts for type safety
-
-### `wrangler.jsonc` - Worker Configuration
-- **Key Settings:**
-  - `"main": "src/index.ts"` - Entry point
-  - `"compatibility_date": "2025-11-01"` - API version compatibility
-  - `"assets": { "directory": "./public" }` - Static file serving
-  - `"observability": { "enabled": true }` - Monitoring
-- **Environment Variables:** Can be configured per environment (dev/prod)
-
-### `package.json` - Dependencies
-- **Key Dependencies:** `itty-router` (lightweight HTTP routing)
-- **Dev Dependencies:** `typescript`, `wrangler`, `@cloudflare/workers-types`
-- **Scripts:** `dev` (local server), `deploy` (production), `start` (alias for dev)
-
-### `.env.example` - Configuration Template
-- **Variables:**
-  - `EUROGAMES_API_URL` - Backend API address
-  - `EUROGAMES_API_KEY` - Authorization Bearer token for backend API
-  - `AUTH_PASSWORD` - Site password for user authentication (optional)
-  - `AUTH_SECRET` - HMAC secret for signing session tokens (optional)
-
-### `.dev.vars` - Local Development Environment
-- **Purpose:** Contains actual environment variables for local development
-- **Usage:** Automatically loaded by `wrangler dev`
-- **Note:** This file is gitignored and should contain your actual API credentials
+### `/src/types.ts` — Shared Types
+- Data models (`Game`, `PlayRecord`) and response shapes, imported by both `api.ts` and `index.ts`
 
 ## Common Development Tasks
 
 ### Start Local Development Server
 ```bash
-# First time setup: Create .dev.vars file with your credentials
-cp .env.example .dev.vars
-# Edit .dev.vars and add your actual EUROGAMES_API_KEY
-
-# Start the dev server
-npm run dev
-# Server runs on http://localhost:8787
-# Wrangler watches for changes and rebuilds automatically
-# Environment variables are loaded from .dev.vars
+cp .env.example .dev.vars   # first time only — then fill in EUROGAMES_API_KEY
+npm run dev                 # http://localhost:8787, hot reload via Wrangler
 ```
 
-### Deploy to Production
+### Deploy
 ```bash
 npm run deploy
-# Deploys to Cloudflare Workers
-```
-
-### Deploy to Specific Environment
-```bash
-npm run deploy -- --env production
 ```
 
 ### Type Check Without Building
@@ -125,33 +57,30 @@ npm run deploy -- --env production
 npx tsc --noEmit
 ```
 
-### Set Production Secrets
+### Set Secrets
 ```bash
-# Set API key for production
-wrangler secret put EUROGAMES_API_KEY --env production
-
-# Set site authentication (optional - if not set, site is public)
-wrangler secret put AUTH_PASSWORD --env production
-wrangler secret put AUTH_SECRET --env production
+wrangler secret put EUROGAMES_API_KEY
+wrangler secret put AUTH_PASSWORD   # optional — omit to leave the site public
+wrangler secret put AUTH_SECRET     # optional — required if AUTH_PASSWORD is set
 ```
 
-## Adding New API Endpoints
+There is currently a single (production) deployment target — no named Wrangler environments are configured, so `--env` flags are not needed for `deploy` or `secret put`.
 
-1. **Add Type Definitions** (if needed)
-   - Edit `src/types.ts` to define response structure
-   - Example: `interface MyResponseType { ... }`
+### Test Endpoints Locally
+```bash
+npm run dev
+curl http://localhost:8787/v1/games
+curl http://localhost:8787/v1/stats/totals
+curl -X POST http://localhost:8787/v1/plays \
+  -H "Content-Type: application/json" \
+  -d '{"gameId":"1","date":"2025-11-03","players":["Alice"],"winner":"Alice"}'
+```
 
-2. **Add API Client Method** (if calling backend)
-   - Edit `src/api.ts` to add high-level method
-   - Example: `async getMyData(): Promise<ApiResponse<MyType>> { ... }`
+## Adding a New API Endpoint
 
-3. **Add Worker Route** in `src/index.ts`
-   - Use appropriate HTTP method: `router.get()`, `router.post()`, etc.
-   - Create API client: `const client = createApiClient(env);`
-   - Call method: `const result = await client.getMyData();`
-   - Return response: `return jsonResponse(result);`
-
-4. **Pattern to Follow:**
+1. **Types** (if needed) — add response/request shapes to `src/types.ts`.
+2. **Client method** (if it calls the backend) — add a method to `ApiClient` in `src/api.ts`.
+3. **Route** — add a handler in `src/index.ts` in the appropriate section:
    ```typescript
    router.get('/v1/my-endpoint', async (request, env: Env) => {
      try {
@@ -164,262 +93,39 @@ wrangler secret put AUTH_SECRET --env production
      }
    });
    ```
+4. Validate any request body before calling the client (see `docs/SPEC.md` §3.3–3.4 for which fields are required per endpoint) and return 400 on invalid input.
+5. If the route should be reachable without auth, add it to `isPublicPath()`.
 
-## Endpoint Organization
+## Code Conventions
 
-Endpoints are grouped into 5 main sections (see comments in index.ts):
+- **Endpoint naming:** `/v1/{resource}/{action}`, REST-style.
+- **Method naming:** verb-noun (`addGame()`, `recordPlay()`, `getWinStats()`).
+- **Error handling:** wrap handler bodies in try/catch, log with `console.error('<context>:', error)`, respond via `errorResponse()`. Status codes in use: 400 (bad input), 401 (unauthenticated), 404 (not found), 201 (created), 200 (default success), 500 (default error).
+- **Responses:** always via `jsonResponse()` / `errorResponse()` so CORS headers and the `{ success, data, error, status }` envelope stay consistent (contract defined in `docs/SPEC.md` §7).
+- **Secrets:** never hardcode; read from `Env` (see `wrangler.jsonc` vars / Wrangler secrets / `.dev.vars`).
 
-### Authentication (`/auth/*`)
-- `POST /auth/login` - Authenticate with password, returns session cookie
-- `POST /auth/logout` - Clear session cookie
+## Known Gap: CORS
 
-### Games (`/v1/games/*`)
-- `GET /v1/games` - List all games
-- `GET /v1/games/:id` - Get game details
-- `POST /v1/games` - Add new game (body: `{bggId: number}`)
-- `PATCH /v1/games/:id/notes` - Update notes (body: `{notes: string}`)
-- `PATCH /v1/games/:id/data` - Update data (body: `{data: object}`)
-- `PUT /v1/games/:id/sync` - Sync from BoardGameGeek
-- `GET /v1/games/:id/history` - Get play history
+The Worker currently sets `Access-Control-Allow-Origin: *` (see `router.options()` and `jsonResponse()` in `src/index.ts`). `docs/SPEC.md` §4 requires this be restricted to the deployed presentation-tier origin(s) — wildcard is not acceptable as a long-term posture. This has not yet been implemented; when it is, update both the OPTIONS preflight handler and `jsonResponse()`.
 
-### Plays (`/v1/plays/*`)
-- CRUD operations for game play records
-- Methods: `recordPlay()`, `getPlay()`, `updatePlay()`, `deletePlay()`, `listPlays()`
+## Frontend
 
-### Statistics (`/v1/stats/*`)
-- Win statistics, player stats, recent plays, last played dates
-- Methods: `getWinStats()`, `getTotalStats()`, `getPlayerStats()`, `getRecentPlays()`, etc.
+- `public/index.html` — SPA shell; `public/login.html` — login page; `public/favicon.svg` — served publicly (pretzel icon)
+- `public/js/app.js` — Alpine stores: `games`, `plays`, `lastPlayed`, `stats`
+- `public/js/api.js` — frontend fetch wrapper
+- `public/css/styles.css` — styling
 
-### Utilities (`/v1/export`, `/v1/query`)
-- Data export and custom SQL query execution
-- Methods: `exportData()`, `query()`
+### Pages
+- **Games** — status, ranking, complexity, play count, last played; search; multi-column sort; add game by BGG ID; edit notes.
+- **Plays** — date, players, winner, scores, comments; search; multi-column sort; record/delete.
+- **Last Played** — games sorted by time since last play, with total plays and days elapsed.
+- **Statistics** — overall per-player totals (`/v1/stats/totals`) and per-game breakdown (`/v1/stats/winners`), 7 sortable columns. The frontend flattens/transforms both responses to the shapes above and computes win rates client-side. A play with winner `"Andrew & Trish"` (cooperative joint win) counts toward both players' win columns, so those columns can sum to more than total plays for games with joint wins — expected, not a bug.
 
-## Error Handling Conventions
+## Key Configuration Files
 
-**Endpoint Error Handling:**
-- Wrap in try-catch block
-- Log errors with context: `console.error('Error doing X:', error)`
-- Return consistent error response: `errorResponse('Failed to do X')`
-
-**HTTP Status Codes:**
-- 400 - Bad request (missing/invalid fields)
-- 404 - Not found
-- 201 - Created (for POST success)
-- 200 - OK (default success)
-- 500 - Server error (default error)
-
-**Response Format:**
-```typescript
-// Success
-{ success: true, data: {...}, error: undefined, status: 200 }
-
-// Error
-{ success: false, data: undefined, error: "error message", status: 500 }
-```
-
-## Authentication
-
-### Site Authentication (User Access)
-The worker supports optional password-based authentication for site access:
-
-- **Session Tokens:** HMAC-SHA256 signed tokens with 30-day expiration
-- **Configuration:** Set `AUTH_PASSWORD` and `AUTH_SECRET` environment variables
-- **Public Paths:** Login page, auth endpoints, favicon, and CSS are always accessible
-- **Behavior:** If auth vars not set, site is publicly accessible
-- **Flow:** Login → Set HttpOnly cookie → Verify on each request → Redirect to login if expired
-
-### Backend API Authentication
-The worker uses Bearer token authentication for backend API calls:
-
-- **Bearer Token:** Via `EUROGAMES_API_KEY` environment variable
-  - Sent as `Authorization: Bearer {token}` header to backend
-
-Authentication is automatically applied to all backend requests via `createApiClient(env)`.
-
-## CORS Configuration
-
-The worker enables CORS for all origins and methods:
-- Access-Control-Allow-Origin: `*`
-- Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
-- Access-Control-Allow-Headers: Content-Type, Authorization
-
-Modify `src/index.ts` router.options() handler to restrict if needed.
-
-## Environment Variables
-
-**Development (.dev.vars):**
-```
-EUROGAMES_API_URL=https://eurogames.web-c10.workers.dev
-EUROGAMES_API_KEY=your_bearer_token_here
-AUTH_PASSWORD=your_site_password
-AUTH_SECRET=your_hmac_secret_key
-```
-
-**Production (via Wrangler Secrets):**
-```bash
-# Set the bearer token as a secret
-wrangler secret put EUROGAMES_API_KEY
-
-# Set site authentication (optional)
-wrangler secret put AUTH_PASSWORD
-wrangler secret put AUTH_SECRET
-
-# For specific environment
-wrangler secret put EUROGAMES_API_KEY --env production
-wrangler secret put AUTH_PASSWORD --env production
-wrangler secret put AUTH_SECRET --env production
-```
-
-Note:
-- `.dev.vars` is used for local development with `wrangler dev`
-- Production secrets are set via `wrangler secret put` command
-- The `EUROGAMES_API_URL` can be configured in `wrangler.jsonc` under `vars` if different from default
-- `AUTH_PASSWORD` and `AUTH_SECRET` are optional; if not set, site is publicly accessible
-
-## Frontend Integration
-
-The frontend is a single-page application:
-- `public/index.html` - Main app with Alpine.js 3.14.3 for reactive state management
-- `public/login.html` - Login page for password authentication
-- Static assets served by the Worker
-
-To call API endpoints from frontend:
-```javascript
-// GET request
-const response = await fetch('/v1/games');
-const data = await response.json();
-
-// POST request with data
-const result = await fetch('/v1/plays', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    gameId: 'game-id',
-    date: '2025-11-03',
-    players: ['Alice', 'Bob'],
-    winner: 'Alice'
-  })
-});
-```
-
-### Frontend Architecture
-
-**Main Files:**
-- `public/index.html` - Single-page app with Alpine.js for state management
-- `public/login.html` - Login page for password authentication
-- `public/js/app.js` - Alpine stores for Games, Plays, Last Played, and Statistics
-- `public/js/api.js` - Frontend API client wrapper
-- `public/css/styles.css` - Responsive styling
-
-**State Management (Alpine.js Stores):**
-- `games` - Game library management with filtering/sorting
-- `plays` - Play record CRUD with filtering/sorting
-- `lastPlayed` - Last played tracking with calculated elapsed days
-- `stats` - Statistics data with sorting capabilities
-
-### Frontend Pages
-
-#### Games Page
-- Lists all games with status, ranking, complexity, play count, and last played date
-- Search filter by name or status
-- Multi-column sorting (name, status, ranking, complexity, games, lastPlayed)
-- Features: Add game via BGG ID, update notes
-
-#### Plays Page
-- Records of all game plays with date, players, winner, scores, comments
-- Search filter by game name, winner, comment, or players
-- Multi-column sorting (date, game name, players, winner)
-- Features: Record new play, delete play record
-
-#### Last Played Page
-- Sorted list of games by time since last play
-- Shows game name, last played date, total times played, days elapsed
-- Multi-column sorting
-- Helps identify which games haven't been played recently
-
-#### Statistics Page
-- **Overall Statistics Table:** Shows player totals (Player, Wins, Total Games, Win Rate)
-  - Loads from `/v1/stats/totals` endpoint
-  - Data structure: `{data: {totalGames, players: {Andrew, Trish, Draw, Game}}}`
-
-- **Game Statistics Table:** Detailed per-game statistics with 7 sortable columns:
-  - Game Name (alphabetical sort)
-  - Total Plays (numeric sort)
-  - Andrew Wins (numeric sort)
-  - Trish Wins (numeric sort)
-  - Draws (numeric sort)
-  - Game Wins (numeric sort) — cooperative losses, where the game beat both players
-  - Win Percentages (percentage sort, shown as "Andrew% : Trish%")
-
-  Loads from `/v1/stats/winners` endpoint
-  - Data structure: `{data: [{gameId, gameName, totalGames, andrew, trish, draw, game}, ...]}`
-  - Transformed in frontend to calculate win rates
-  - A play recorded with winner `"Andrew & Trish"` (cooperative joint win) counts toward both `andrew` and `trish`, so those two columns can sum to more than `totalPlays` for games with joint wins — this is expected
-  - All columns are clickable to sort/reverse sort
-  - Visual indicators (▲ ▼) show current sort column and direction
-
-## Key Configuration Files and Their Relationships
-
-1. **wrangler.jsonc** → Defines Worker configuration, entry point, assets
-2. **tsconfig.json** → TypeScript compilation settings, Cloudflare Workers types
-3. **package.json** → Dependencies (itty-router), dev tools (Wrangler, TypeScript)
-4. **.env.example/.env.local** → Runtime configuration (API URL, credentials)
-5. **src/index.ts** → Uses environment variables via `Env` interface
-6. **public/** → Static assets served by the Worker
-
-## Build and Deployment
-
-**Development:**
-- `npm install` - Install dependencies once
-- `npm run dev` - Start local server with hot reload
-- TypeScript errors block deployment (strict mode enabled)
-
-**Production:**
-- `npm run deploy` - Compiles TypeScript and deploys to Cloudflare Workers
-- Wrangler handles bundling, minification, and deployment
-- Code deployed to Cloudflare's global edge network
-
-**Observability:**
-- Console logs accessible via Cloudflare dashboard
-- `"observability": { "enabled": true }` in wrangler.jsonc enables metrics
-
-## Testing API Endpoints Locally
-
-```bash
-# Start dev server
-npm run dev
-
-# In another terminal, test endpoints
-curl http://localhost:8787/v1/games
-curl http://localhost:8787/v1/stats/totals
-curl -X POST http://localhost:8787/v1/plays \
-  -H "Content-Type: application/json" \
-  -d '{"gameId":"1","date":"2025-11-03","players":["Alice"],"winner":"Alice"}'
-```
-
-## Best Practices When Modifying Code
-
-1. **Type Safety First:** Always provide proper TypeScript types. Use generics like `ApiResponse<T>`.
-2. **Error Handling:** Wrap async operations in try-catch, log errors, return consistent error responses.
-3. **Naming Conventions:**
-   - Endpoints: `/v1/{resource}/{action}` (REST style)
-   - Methods: verb-noun format (`addGame()`, `recordPlay()`, `getWinStats()`)
-4. **Request Validation:** Check for required fields before processing, return 400 for bad requests.
-5. **Authentication:** Respect environment variables for both site auth (AUTH_PASSWORD, AUTH_SECRET) and backend API auth (EUROGAMES_API_KEY).
-6. **Public Paths:** When adding new public routes (no auth required), update `isPublicPath()` in index.ts.
-7. **No Secrets in Code:** Never commit API keys or tokens; use Wrangler secrets.
-8. **CORS Headers:** Responses automatically include CORS headers via `jsonResponse()`.
-9. **Response Consistency:** All responses should use `jsonResponse()` helper.
-
-## Important Notes
-
-- **Site Authentication:** Optional password-based auth with HMAC-SHA256 signed session tokens. If `AUTH_PASSWORD` and `AUTH_SECRET` are not set, the site is publicly accessible.
-- **Frontend Architecture:** Single-page app using Alpine.js (lightweight, no build step required). See Frontend Pages section for details on Games, Plays, Last Played, and Statistics views.
-- **Data Transformation:** Frontend transforms API responses to match expected format:
-  - `/v1/stats/winners` response flattened from `{data: []}` with individual player fields to normalized `wins: {andrew, trish, draw, game}` object
-  - `/v1/stats/totals` response transformed from player counts to array format for table display
-- **Minimal Dependencies:** Backend uses only itty-router (not Express). Frontend uses Alpine.js only. Keeps bundle size small.
-- **Edge Computing:** Worker runs on Cloudflare's edge network globally, not on a central server.
-- **Stateless:** Worker has no persistent state; each request is independent.
-- **Version API:** All endpoints use `/v1/` prefix for API versioning.
-- **Favicon:** SVG favicon of a pretzel is served at `/favicon.svg`.
+| File | Role |
+|---|---|
+| `wrangler.jsonc` | Worker entry point, static asset binding (`run_worker_first: true` — Worker auth gate runs before assets are served), `EUROGAMES_API_URL` default, observability toggle |
+| `tsconfig.json` | Strict TypeScript settings + Cloudflare Workers types |
+| `package.json` | Runtime dep (`itty-router`) and dev tooling (`typescript`, `wrangler`, `@cloudflare/workers-types`) |
+| `.env.example` | Template for `.dev.vars` (gitignored) — `EUROGAMES_API_URL`, `EUROGAMES_API_KEY`, `AUTH_PASSWORD`, `AUTH_SECRET` |
